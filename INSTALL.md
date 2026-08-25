@@ -25,6 +25,7 @@ Stop and ask the user to choose **one or more**:
 - **Claude Desktop** (includes Claude cloud Skills upload)
 - **Hermes Agent**
 - **Warp**
+- **VS Code** (user-profile `mcp.json` via **MCP: Open User Configuration**; per-workspace `.vscode/mcp.json` only if the user asks)
 - **Multiple** (run skills/MCP steps once per chosen host)
 
 Wait for their answer before mutating anything.
@@ -243,7 +244,7 @@ that path was skipped):
 
 | Item | Value |
 |------|--------|
-| Host | Cursor / Claude Desktop / Hermes Agent / Warp / Multiple |
+| Host | Cursor / Claude Desktop / Hermes Agent / Warp / VS Code / Multiple |
 | Scope | Skills only / Skills + MCP / MCP only |
 | Remote | git@github.com:arog-lahcim/Mad-Skills.git (or HTTPS if the user chose that) |
 | Clone | <path or n/a> |
@@ -251,6 +252,7 @@ that path was skipped):
 | Cursor symlink | ~/.cursor/skills/Mad-Skills → <target or n/a / unchanged> |
 | Hermes external_dirs | <path listed or n/a / unchanged> |
 | Claude skills | uploaded from release zips / local zips / n/a |
+| VS Code MCP | merged → user-profile mcp.json (or .vscode/mcp.json) ⟪n/a if skipped⟫ |
 | Skills | <comma-separated skill folder names, or n/a> |
 
 <If MCP ran: include the MCP install table and connection/verification notes from those skills.>

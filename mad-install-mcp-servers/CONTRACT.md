@@ -6,14 +6,18 @@ Stable facts for agents **editing** this skill. Install-time agents follow `SKIL
 
 - Prefer GitHub, GitLab, Atlassian (`mcp-atlassian`), and Notion only.
 - Stay generic: no org-specific hosts, tokens, or project names in templates.
-- Quad host: Cursor (`~/.cursor/mcp.json`), Claude Desktop
+- Five hosts: Cursor (`~/.cursor/mcp.json`), Claude Desktop
   (`claude_desktop_config.json`), Hermes Agent (`~/.hermes/config.yaml` ->
   `mcp_servers`), Warp (`~/.warp/.mcp.json`, optional project
   `.warp/.mcp.json`, GUI Settings -> Agents -> MCP servers, or one-off
-  `--mcp`; `WARP_*` env vars). Project `.cursor/mcp.json` only when the user
-  asks.
+  `--mcp`; `WARP_*` env vars), and VS Code (user-profile `mcp.json` opened
+  via **MCP: Open User Configuration**; top-level key is `servers`, not
+  `mcpServers`; optional project `.vscode/mcp.json`; GUI
+  Command Palette -> **MCP: Add Server**; one-off `code --add-mcp JSON`;
+  `VSCODE_*` env vars). Project `.cursor/mcp.json` or `.vscode/mcp.json`
+  only when the user asks.
 - Env prefixes stay independent: `CURSOR_*` vs `CLAUDE_*` vs `HERMES_*` vs
-  `WARP_*`. Never merge them.
+  `WARP_*` vs `VSCODE_*`. Never merge them.
 
 ## Sources of truth
 
@@ -23,7 +27,8 @@ Stable facts for agents **editing** this skill. Install-time agents follow `SKIL
 | Claude Desktop MCP server templates | [mcp.claude.json](mcp.claude.json) |
 | Hermes Agent MCP server templates | [mcp.hermes.json](mcp.hermes.json) |
 | Warp MCP server templates | [mcp.warp.json](mcp.warp.json) |
-| Required env var names + stub append behavior | [scripts/ensure-env-exports.sh](scripts/ensure-env-exports.sh) (`CURSOR_VARS` / `CLAUDE_VARS` / `HERMES_VARS` / `WARP_VARS`, `--host`) |
+| VS Code MCP server templates | [mcp.vscode.json](mcp.vscode.json) |
+| Required env var names + stub append behavior | [scripts/ensure-env-exports.sh](scripts/ensure-env-exports.sh) (`CURSOR_VARS` / `CLAUDE_VARS` / `HERMES_VARS` / `WARP_VARS` / `VSCODE_VARS`, `--host`) |
 | Install / check / prompt workflow | [SKILL.md](SKILL.md) |
 | Connectivity probes — MCP + CLI (`gh`, `glab`, `argocd`; all hosts) | `mad-check-connections` |
 
@@ -57,10 +62,11 @@ mainly after `WARP_*` env changes. Confirm file installs by reading
 - Do not edit or overwrite this skill’s templates during an install run.
 - Post-install: reload/restart the host as needed (Hermes: `/reload-mcp` or
   restart; Warp: quit/reopen after env changes; confirm file MCP via
-  `~/.warp/.mcp.json` / Settings, not `oz mcp list` alone), then all hosts
-  -> **mad-check-connections** (host-specific probe rules in that skill). For
-  Hermes/Warp OAuth (e.g. Notion), complete host login before treating the
-  check as final.
+  `~/.warp/.mcp.json` / Settings, not `oz mcp list` alone; VS Code: quit/reopen
+  after `VSCODE_*` env changes, then reload via **MCP: List Servers** / Developer:
+  Reload Window), then all hosts -> **mad-check-connections** (host-specific
+  probe rules in that skill). For Hermes/Warp/VS Code OAuth (e.g. Notion),
+  complete host login before treating the check as final.
 
 ## Related
 

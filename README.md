@@ -1,7 +1,7 @@
 # Mad Skills
 
 Personal [Agent Skills](https://agentskills.io) for **Cursor**, **Claude Desktop**
-(also uploadable to Claude cloud Skills), **Hermes Agent**, and **Warp**.
+(also uploadable to Claude cloud Skills), **Hermes Agent**, **Warp**, and **VS Code**.
 Workflows stay generic; install paths and MCP config differ by host.
 
 ## Install with an agent
@@ -76,6 +76,22 @@ links under `~/.warp/skills/` — not into `~/.agents/skills/` or per-skill
    Warp agent what skills it sees). Do not use `oz agent list` for this check —
    that lists named/cloud agents, not skill folders.
 
+## VS Code (manual)
+
+VS Code ships native MCP support (Copilot **Agent mode**). It does **not**
+load Agent Skills catalogs — only Cursor/Claude/Hermes/Warp do.
+
+1. Install Mad Skills somewhere on disk (clone or existing checkout).
+2. Open the user-profile `mcp.json` via **MCP: Open User Configuration**
+   (Command Palette). Top-level key is `servers`, not `mcpServers`; each
+   server needs `"type": "stdio"` (command + args + env) or `"type": "http"`
+   (url + headers).
+3. Merge from `mad-install-mcp-servers/mcp.vscode.json`. Set `VSCODE_*` env
+   vars in `~/.zshenv` (macOS), then fully quit/reopen VS Code (or run
+   **Developer: Reload Window**).
+4. Confirm with **MCP: List Servers** (Command Palette). Switch Copilot
+   Chat to **Agent mode** to surface MCP tools.
+
 ## Cursor (manual)
 
 Cursor's recommended Mad Skills install is a **whole-repo** symlink (not one link
@@ -125,6 +141,7 @@ Ask the agent to run **mad-install-mcp-servers** and choose host:
 | Claude Desktop | `claude_desktop_config.json` | `CLAUDE_*` |
 | Hermes Agent | `~/.hermes/config.yaml` (`mcp_servers`) | `HERMES_*` |
 | Warp | `~/.warp/.mcp.json` (GUI / one-off `--mcp` as fallbacks) | `WARP_*` |
+| VS Code | user-profile `mcp.json` (**MCP: Open User Configuration**) | `VSCODE_*` |
 
 Prefixes are independent so each app can be configured separately. Hermes
 secrets prefer `~/.hermes/.env`. Warp file installs show under Settings ->
@@ -150,6 +167,12 @@ when the pull adds new `mad-*` skill folders. Or ask **mad-update-skills**.
 
 **Claude Desktop / cloud:** download newer zips from Releases and re-upload/replace
 skills (or ask **mad-update-skills** for host-specific steps).
+
+**VS Code:** no Mad Skills clone to sync (VS Code only consumes MCP servers
+from `mad-install-mcp-servers/mcp.vscode.json`). After pulling updates to a
+local Mad Skills clone, re-run `mad-install-mcp-servers` to refresh the
+user-profile `mcp.json`. Reload VS Code (or **Developer: Reload Window**)
+and confirm via **MCP: List Servers**.
 
 ## Releases
 

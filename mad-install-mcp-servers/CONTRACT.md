@@ -25,7 +25,7 @@ Stable facts for agents **editing** this skill. Install-time agents follow `SKIL
 | Warp MCP server templates | [mcp.warp.json](mcp.warp.json) |
 | Required env var names + stub append behavior | [scripts/ensure-env-exports.sh](scripts/ensure-env-exports.sh) (`CURSOR_VARS` / `CLAUDE_VARS` / `HERMES_VARS` / `WARP_VARS`, `--host`) |
 | Install / check / prompt workflow | [SKILL.md](SKILL.md) |
-| Connectivity probes (all hosts) | `mad-check-connections` |
+| Connectivity probes — MCP + CLI (`gh`, `glab`, `argocd`; all hosts) | `mad-check-connections` |
 
 When adding or renaming an env var: update the matching `*_VARS` array, the host
 template `${…}` / `${env:…}` refs, and the SKILL.md env table together.

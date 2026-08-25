@@ -1,16 +1,17 @@
 ---
 name: mad-check-connections
 description: >-
-  Probe MCP auth for GitLab, GitHub, Jira, and Notion and emit a simple
-  connection report for Cursor, Claude Desktop, Hermes Agent, or Warp. Use when
-  the user asks to check connections, test MCP auth, verify integrations,
-  diagnose missing GitLab/GitHub/Jira/Notion access, or run
-  mad-check-connections.
+  Probe MCP auth for GitLab, GitHub, Jira, and Notion, verify CLI tools (gh,
+  glab, argocd), and emit a simple connection report for Cursor, Claude
+  Desktop, Hermes Agent, or Warp. Use when the user asks to check
+  connections, test MCP auth, verify integrations or CLIs, diagnose missing
+  GitLab/GitHub/Jira/Notion access, or run mad-check-connections.
 ---
 
 # Check connections
 
-Verify the agent can reach the four required MCP services and report the result.
+Verify the agent can reach the four required MCP services, that common CLIs
+(`gh`, `glab`, `argocd`) are installed and authenticated, and report the result.
 
 If the active host is ambiguous, ask once: **Cursor**, **Claude Desktop**,
 **Hermes Agent**, or **Warp**.
@@ -93,25 +94,56 @@ Do **not** invent Cursor-style probes. When the host is Warp:
      then mark `✅ ok` or `❌ fail` from the observed result. Missing `oz` is
      not an error by itself.
 
+## CLI tools under test
+
+Host-agnostic shell probes. Run in parallel with MCP checks when possible.
+Read-only only — do not create, edit, or delete anything via these CLIs.
+
+| CLI | Presence | Probe | Detail on ok |
+|-----|----------|-------|--------------|
+| `gh` | `command -v gh` | `gh api user --jq .login` | `login=<name>` |
+| `glab` | `command -v glab` | `glab api user --jq .username` | `user=<name>` |
+| `argocd` | `command -v argocd` | `argocd version --client --short`, then `argocd account get-user-info -o name` | `user=<name>` (include client version in Detail when useful) |
+
+CLI status uses the same render map as MCP (`✅ ok`, `❌ fail`, `⚪ missing`,
+`💥 error`). Treat unauthenticated or unreachable CLI auth as `❌ fail`, not
+`🔐 needsAuth` (that status is MCP-only here).
+
+- **`⚪ missing`** — binary not on `PATH`
+- **`❌ fail`** — binary present but probe failed (not logged in, bad token, no
+  Argo CD context/server, permission, or network error)
+- **`💥 error`** — binary present but exits abnormally (crash, corrupt install)
+
+One-line Detail examples for CLI:
+
+- `✅ ok` — `login=octocat`, `user=jdoe`, `user=admin@argocd`
+- `❌ fail` — `not logged in`, `401 Unauthorized`, `no current Argo CD context`
+- `⚪ missing` — `gh not on PATH`
+
 ## Workflow
 
 ### Cursor
 
 1. Discover which of the four servers are present and their `serverStatus`.
-2. For each service, in parallel when possible:
+2. For each MCP service, in parallel when possible:
    - **Missing** — server not in the MCP catalog → `missing`
    - **needsAuth** — call `mcp_auth` for that server once, then re-inspect
    - **error / loading** — record as `error` or wait briefly and re-check once
    - **ready** — call the probe tool; success → `ok`, failure → `fail`
-3. Do not retry auth loops. One `mcp_auth` attempt per server max.
-4. Emit the report below. Keep it short — no dump of full API payloads.
-5. Rename the chat (see **Chat title** — Cursor only).
+3. In parallel with step 2 when possible, run the **CLI tools under test**
+   probes via the shell (`command -v`, then each probe command).
+4. Do not retry auth loops. One `mcp_auth` attempt per server max.
+5. Emit the report below. Keep it short — no dump of full API payloads or CLI
+   stdout.
+6. Rename the chat (see **Chat title** — Cursor only).
 
 ### Claude Desktop / Hermes Agent / Warp
 
 1. Follow the host-specific probe section above (config / `oz` / observed evidence).
-2. Emit the report below. Keep it short — no dump of full API payloads.
-3. Do **not** call Cursor `rename_chat` / `cursor-app-control` on these hosts.
+2. Run the **CLI tools under test** probes via the shell (same table as Cursor).
+3. Emit the report below. Keep it short — no dump of full API payloads or CLI
+   stdout.
+4. Do **not** call Cursor `rename_chat` / `cursor-app-control` on these hosts.
 
 ## Status values
 
@@ -122,7 +154,7 @@ Always render Status with the literal Unicode emoji and label from this fixed ma
 | `ok` | `✅ ok` | Probe succeeded; include a short identity hint (login, display name, or account id) |
 | `fail` | `❌ fail` | Server present but probe errored (auth, permission, or API) |
 | `needsAuth` | `🔐 needsAuth` | Server requires authentication and is not usable yet |
-| `missing` | `⚪ missing` | MCP server not available in this session |
+| `missing` | `⚪ missing` | MCP server not available in this session, or CLI binary not on `PATH` |
 | `error` | `💥 error` | Server listed but in error/unavailable state |
 
 ## Report format
@@ -132,6 +164,8 @@ Use this exact structure (Markdown). Status column must include the emoji from t
 ```markdown
 # Connection report
 
+## MCP
+
 | Service | Status | Detail |
 |---------|--------|--------|
 | GitHub | ✅ ok | <short detail> |
@@ -139,7 +173,15 @@ Use this exact structure (Markdown). Status column must include the emoji from t
 | Jira | 🔐 needsAuth | <short detail> |
 | Notion | ⚪ missing | <short detail> |
 
-**Summary:** <N>/4 ok
+## CLI
+
+| Tool | Status | Detail |
+|------|--------|--------|
+| gh | ✅ ok | <short detail> |
+| glab | ❌ fail | <short detail> |
+| argocd | ⚪ missing | <short detail> |
+
+**Summary:** MCP <N>/4 ok | CLI <M>/3 ok
 ```
 
 Detail examples:
@@ -147,7 +189,8 @@ Detail examples:
 - `✅ ok` — `login=octocat` or `user=Jane Doe`
 - `❌ fail` — one-line error reason (no stack traces)
 - `🔐 needsAuth` — `authenticate MCP server`
-- `⚪ missing` — `MCP server not configured — run mad-install-mcp-servers`
+- `⚪ missing` — MCP: `MCP server not configured — run mad-install-mcp-servers`;
+  CLI: `<tool> not on PATH`
 - `💥 error` — `serverStatus=error`
 
 Optional one-liner after the table only if something is blocked: what the user should fix (enable MCP, re-auth, check token). No essays.
@@ -158,13 +201,16 @@ Optional one-liner after the table only if something is blocked: what the user s
 (server `cursor-app-control`) once with a title that encodes the overall status.
 On Claude Desktop, Hermes, or Warp, skip chat rename.
 
-- **Overall status is OK** only when all four services are `ok`.
-- **Overall status is FAILED** if any service is `fail`, `needsAuth`, `missing`, or `error`.
+- **Overall status is OK** only when all four MCP services and all three CLI
+  tools are `ok`.
+- **Overall status is FAILED** if any MCP service or CLI tool is `fail`,
+  `needsAuth`, `missing`, or `error`.
 
 Use the literal Unicode emoji in the title:
 
-- All ok → `✅ Connections | 4/4 OK`
-- Otherwise → `❌ Connections | FAILED <N>/4` (where `<N>` is the count of `ok` services)
+- All ok → `✅ Connections | 7/7 OK`
+- Otherwise → `❌ Connections | FAILED <N>/7` (where `<N>` is the count of `ok`
+  rows across both tables)
 
 If `rename_chat` fails (e.g. the conversation can't be identified), skip silently — do not retry and do not report it as an error.
 
@@ -186,10 +232,18 @@ If any service is `⚪ missing`, or `❌ fail` / `💥 error` looks like absent 
   vars (`CURSOR_*`, `CLAUDE_*`, `HERMES_*`, or `WARP_*`) rather than inventing
   new ones or crossing hosts.
 
+When a CLI is `⚪ missing` or `❌ fail` due to auth:
+
+- `gh` — install [GitHub CLI](https://cli.github.com/); then `gh auth login`
+- `glab` — install [GitLab CLI](https://gitlab.com/gitlab-org/cli); then
+  `glab auth login`
+- `argocd` — install [Argo CD CLI](https://argo-cd.readthedocs.io/en/stable/user-guide/installation/);
+  then `argocd login <server>` (or set context) before re-checking
+
 ## Do not
 
-- Skip a listed service
-- Write data to any service as part of the check
+- Skip a listed MCP service or CLI tool
+- Write data to any service or CLI target as part of the check
 - Invent a passing status without a successful probe (Cursor) or observed
   evidence (Claude Desktop / Hermes Agent / Warp)
 - Call Cursor-only rename/MCP introspection tools on Claude / Hermes / Warp

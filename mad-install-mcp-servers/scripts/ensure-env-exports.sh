@@ -7,6 +7,7 @@
 #   --host claude  → CLAUDE_* vars (Claude Desktop claude_desktop_config.json)
 #   --host hermes  → HERMES_* vars (Hermes ~/.hermes/config.yaml + ~/.hermes/.env)
 #   --host warp    → WARP_* vars (Warp ~/.warp/.mcp.json + process env)
+#   --host vscode  → VSCODE_* vars (VS Code user mcp.json)
 set -euo pipefail
 
 CURSOR_VARS=(
@@ -53,6 +54,17 @@ WARP_VARS=(
   WARP_CONFLUENCE_API_TOKEN
 )
 
+VSCODE_VARS=(
+  VSCODE_GITHUB_TOKEN
+  VSCODE_GITLAB_TOKEN
+  VSCODE_JIRA_URL
+  VSCODE_JIRA_USERNAME
+  VSCODE_JIRA_API_TOKEN
+  VSCODE_CONFLUENCE_URL
+  VSCODE_CONFLUENCE_USERNAME
+  VSCODE_CONFLUENCE_API_TOKEN
+)
+
 HOST=""
 REQUIRED_VARS=()
 MARKER_BEGIN=""
@@ -62,15 +74,16 @@ RESTART_APP=""
 usage() {
   cat <<'EOF'
 Usage:
-  ensure-env-exports.sh --host cursor|claude|hermes|warp status
-  ensure-env-exports.sh --host cursor|claude|hermes|warp suggest
-  ensure-env-exports.sh --host cursor|claude|hermes|warp append --file PATH [--dry-run]
+  ensure-env-exports.sh --host cursor|claude|hermes|warp|vscode status
+  ensure-env-exports.sh --host cursor|claude|hermes|warp|vscode suggest
+  ensure-env-exports.sh --host cursor|claude|hermes|warp|vscode append --file PATH [--dry-run]
 
 --host   Required. Selects which independent env var set to manage:
          cursor → CURSOR_* (Cursor MCP)
          claude → CLAUDE_* (Claude Desktop MCP)
          hermes → HERMES_* (Hermes Agent MCP)
          warp   → WARP_*   (Warp ~/.warp/.mcp.json)
+         vscode → VSCODE_* (VS Code user mcp.json)
 
 status   Print set|MISSING for each required var (values never printed).
 suggest  Print recommended path and candidate files (exists/missing).
@@ -113,8 +126,15 @@ set_host() {
       MARKER_END="# <<< mad-install-mcp-servers:warp <<<"
       RESTART_APP="Warp"
       ;;
+    vscode)
+      HOST="vscode"
+      REQUIRED_VARS=("${VSCODE_VARS[@]}")
+      MARKER_BEGIN="# >>> mad-install-mcp-servers:vscode >>>"
+      MARKER_END="# <<< mad-install-mcp-servers:vscode <<<"
+      RESTART_APP="VS Code"
+      ;;
     *)
-      printf 'error: --host must be cursor, claude, hermes, or warp (got: %s)\n' "$h" >&2
+      printf 'error: --host must be cursor, claude, hermes, warp, or vscode (got: %s)\n' "$h" >&2
       usage >&2
       exit 2
       ;;

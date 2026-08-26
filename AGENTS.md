@@ -9,10 +9,11 @@ bound to a specific project or company.
 - Examples, paths, ticket IDs, and URLs in skills must stay illustrative and reusable across contexts — or use placeholders.
 - If guidance only applies to one org or repo, keep it out of Mad Skills (put it in that project’s `AGENTS.md` / rules instead).
 
-## Hosts (Cursor + Claude Desktop / cloud + Hermes Agent + Warp)
+## Hosts (Cursor + Claude Desktop / cloud + Hermes Agent + Warp + VS Code)
 
 Mad Skills target **Cursor**, **Claude Desktop** (including Claude cloud Skills
-uploads), **Hermes Agent**, and **Warp**.
+uploads), **Hermes Agent**, **Warp**, and **VS Code** (Copilot Agent mode;
+user-profile `mcp.json` opened via **MCP: Open User Configuration**).
 
 - Keep host-specific install paths and MCP config in separate files or clearly labeled sections. Do not hard-code only Cursor paths when MCP/install guidance is shared.
 - **Agent Skills catalogs** (shared knowledge): many hosts load
@@ -31,8 +32,9 @@ uploads), **Hermes Agent**, and **Warp**.
 - Warp skills: catalog install via `scripts/link-skills.sh` into
   `~/.warp/skills/` (Warp-only / Warp+Cursor) or `~/.agents/skills/` (shared
   cross-tool path when Cursor's `Mad-Skills` symlink is not also in use).
-- MCP templates: `mad-install-mcp-servers/mcp.cursor.json`, `mcp.claude.json`, `mcp.hermes.json`, and `mcp.warp.json`.
+- MCP templates: `mad-install-mcp-servers/mcp.cursor.json`, `mcp.claude.json`, `mcp.hermes.json`, `mcp.warp.json`, and `mcp.vscode.json`.
 - Warp MCP preferred target: `~/.warp/.mcp.json` (GUI / `/agent-add-mcp` / one-off `--mcp` are fallbacks). File installs: confirm via the JSON file and/or Settings; `oz mcp list` is account/Drive only. Skills verify: `oz agent skills` (not `oz agent list`).
+- VS Code MCP preferred target: user-profile `mcp.json` opened via **MCP: Open User Configuration** (Command Palette). Top-level key is `servers` (not `mcpServers`); each server needs `"type": "stdio"` (command + args + env) or `"type": "http"` (url + headers). `mcp.vscode.json` resolves `VSCODE_*` env vars from the VS Code process env (prefer `~/.zshenv` on macOS).
 
 ## Env var independence
 
@@ -40,7 +42,8 @@ uploads), **Hermes Agent**, and **Warp**.
 - Claude Desktop MCP uses `CLAUDE_*` variables.
 - Hermes Agent MCP uses `HERMES_*` variables (prefer `~/.hermes/.env`).
 - Warp MCP uses `WARP_*` variables.
-- Never treat them as interchangeable. When renaming or adding a var, update the matching host template, `scripts/ensure-env-exports.sh` (`CURSOR_VARS` / `CLAUDE_VARS` / `HERMES_VARS` / `WARP_VARS`), and the skill env tables together.
+- VS Code MCP uses `VSCODE_*` variables.
+- Never treat them as interchangeable. When renaming or adding a var, update the matching host template, `scripts/ensure-env-exports.sh` (`CURSOR_VARS` / `CLAUDE_VARS` / `HERMES_VARS` / `WARP_VARS` / `VSCODE_VARS`), and the skill env tables together.
 
 ## Releases and versioning
 

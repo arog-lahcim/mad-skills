@@ -1,0 +1,37 @@
+{
+  "servers": {
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer ${env:VSCODE_GITHUB_TOKEN}"
+      }
+    },
+    "notion": {
+      "type": "http",
+      "url": "https://mcp.notion.com/mcp"
+    },
+    "gitlab": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@ttpears/gitlab-mcp-server@latest"],
+      "env": {
+        "GITLAB_URL": "https://gitlab.com",
+        "GITLAB_TOKEN": "${env:VSCODE_GITLAB_TOKEN}"
+      }
+    },
+    "mcp-atlassian": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["mcp-atlassian"],
+      "env": {
+        "JIRA_URL": "${env:VSCODE_JIRA_URL}",
+        "JIRA_USERNAME": "${env:VSCODE_JIRA_USERNAME}",
+        "JIRA_API_TOKEN": "${env:VSCODE_JIRA_API_TOKEN}",
+        "CONFLUENCE_URL": "${env:VSCODE_CONFLUENCE_URL}",
+        "CONFLUENCE_USERNAME": "${env:VSCODE_CONFLUENCE_USERNAME}",
+        "CONFLUENCE_API_TOKEN": "${env:VSCODE_CONFLUENCE_API_TOKEN}"
+      }
+    }
+  }
+}

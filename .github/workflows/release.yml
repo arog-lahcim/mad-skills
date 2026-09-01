@@ -114,6 +114,9 @@ jobs:
       - name: Install release tooling
         run: npm ci
 
+      - name: Repair orphaned release tags
+        run: bash scripts/repair-orphaned-release-tags.sh
+
       - name: Run semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

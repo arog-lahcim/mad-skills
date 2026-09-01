@@ -102,7 +102,7 @@ Read-only only — do not create, edit, or delete anything via these CLIs.
 | CLI | Presence | Probe | Detail on ok |
 |-----|----------|-------|--------------|
 | `gh` | `command -v gh` | `gh api user --jq .login` | `login=<name>` |
-| `glab` | `command -v glab` | `glab api user --jq .username` | `user=<name>` |
+| `glab` | `command -v glab` | `glab api user \| jq -r .username` | `user=<name>` |
 | `argocd` | `command -v argocd` | `argocd version --client --short`, then `argocd account get-user-info -o name` | `user=<name>` (include client version in Detail when useful) |
 
 CLI status uses the same render map as MCP (`✅ ok`, `❌ fail`, `⚪ missing`,
@@ -113,6 +113,8 @@ CLI status uses the same render map as MCP (`✅ ok`, `❌ fail`, `⚪ missing`,
 - **`❌ fail`** — binary present but probe failed (not logged in, bad token, no
   Argo CD context/server, permission, or network error)
 - **`💥 error`** — binary present but exits abnormally (crash, corrupt install)
+
+`glab` has no `--jq` flag (unlike `gh`); pipe JSON to `jq` instead.
 
 One-line Detail examples for CLI:
 

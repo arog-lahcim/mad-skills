@@ -26,8 +26,8 @@ Prefer the global install:
 
 That path should be a symlink to the Mad-Skills clone. If it is missing, stop and
 tell the user to install first via
-[INSTALL.md](https://raw.githubusercontent.com/arog-lahcim/Mad-Skills/main/INSTALL.md)
-(repo: https://github.com/arog-lahcim/Mad-Skills). Do not create a new clone or
+[INSTALL.md](https://raw.githubusercontent.com/arog-lahcim/mad-skills/main/INSTALL.md)
+(repo: https://github.com/arog-lahcim/mad-skills). Do not create a new clone or
 symlink unless the user asks you to follow that install guide.
 
 ### Steps
@@ -103,7 +103,7 @@ Do not wipe unrelated Hermes config keys while syncing.
 Claude does not use the Cursor skills symlink. Sync by replacing uploaded skills
 from the latest GitHub Release:
 
-1. Open https://github.com/arog-lahcim/Mad-Skills/releases and identify the latest
+1. Open https://github.com/arog-lahcim/mad-skills/releases and identify the latest
    release (or the version the user named).
 2. Download individual `mad-*.zip` assets, or `mad-skills-all.zip` and unpack so
    each skill folder contains `SKILL.md`.

@@ -5,7 +5,7 @@
   "description": "Personal agent skills for Cursor, Claude Desktop, Hermes Agent, and Warp",
   "repository": {
     "type": "git",
-    "url": "https://github.com/arog-lahcim/Mad-Skills.git"
+    "url": "https://github.com/arog-lahcim/mad-skills.git"
   },
   "devDependencies": {
     "@semantic-release/exec": "^7.1.0",

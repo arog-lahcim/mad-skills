@@ -9,8 +9,8 @@ Workflows stay generic; install paths and MCP config differ by host.
 Paste this prompt into a new agent chat (Cursor, Claude, Hermes, or Warp):
 
 ```text
-Install Mad Skills from https://github.com/arog-lahcim/Mad-Skills — fetch
-https://raw.githubusercontent.com/arog-lahcim/Mad-Skills/main/INSTALL.md and
+Install Mad Skills from https://github.com/arog-lahcim/mad-skills — fetch
+https://raw.githubusercontent.com/arog-lahcim/mad-skills/main/INSTALL.md and
 follow it interactively.
 ```
 
@@ -111,7 +111,7 @@ under `~/.cursor/skills/` unless you intentionally want the catalog layout inste
 
 ## Claude Desktop / cloud (manual)
 
-1. Open the latest [GitHub Release](https://github.com/arog-lahcim/Mad-Skills/releases).
+1. Open the latest [GitHub Release](https://github.com/arog-lahcim/mad-skills/releases).
 2. Download individual `mad-*.zip` files, or `mad-skills-all.zip` and unpack.
 3. In Claude: **Customize → Skills** → upload each skill zip (folder must contain
    `SKILL.md`). Enable **code execution** if Skills are greyed out.

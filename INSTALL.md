@@ -7,12 +7,12 @@ mutating step, and do not invent alternate remotes or install layouts.
 ## Canonical remote
 
 ```text
-git@github.com:arog-lahcim/Mad-Skills.git
+git@github.com:arog-lahcim/mad-skills.git
 ```
 
-Browser / HTTPS URL (docs, Releases): https://github.com/arog-lahcim/Mad-Skills
+Browser / HTTPS URL (docs, Releases): https://github.com/arog-lahcim/mad-skills
 
-Prefer **SSH** clone. Use HTTPS (`https://github.com/arog-lahcim/Mad-Skills.git`)
+Prefer **SSH** clone. Use HTTPS (`https://github.com/arog-lahcim/mad-skills.git`)
 only when the user asks for it, or when SSH to GitHub is unavailable.
 
 ## Workflow
@@ -55,7 +55,7 @@ Wait for their answer before mutating anything.
 **Clone** (if needed):
 
 ```bash
-git clone git@github.com:arog-lahcim/Mad-Skills.git ~/Mad-Skills
+git clone git@github.com:arog-lahcim/mad-skills.git ~/Mad-Skills
 ```
 
 (Adjust destination to the user’s chosen path. Switch to the HTTPS URL only if
@@ -246,7 +246,7 @@ that path was skipped):
 |------|--------|
 | Host | Cursor / Claude Desktop / Hermes Agent / Warp / VS Code / Multiple |
 | Scope | Skills only / Skills + MCP / MCP only |
-| Remote | git@github.com:arog-lahcim/Mad-Skills.git (or HTTPS if the user chose that) |
+| Remote | git@github.com:arog-lahcim/mad-skills.git (or HTTPS if the user chose that) |
 | Clone | <path or n/a> |
 | Warp symlinks | <target>/{mad-*} → <clone path or n/a / unchanged> |
 | Cursor symlink | ~/.cursor/skills/Mad-Skills → <target or n/a / unchanged> |

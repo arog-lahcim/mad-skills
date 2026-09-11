@@ -8,7 +8,7 @@ description: >-
 
 # Git Commit
 
-Follow [Guidelines for Version Control](https://app.notion.com/p/Guidelines-for-Version-Control-2400f2e73c5b80c18aebf6cc839cc782) for commit messages. Commits (especially those reaching `main`) must match the conventional-commit pattern so semantic release can derive versions.
+Follow [Guidelines for Version Control](https://app.notion.com/p/Guidelines-for-Version-Control-2400f2e73c5b80c18aebf6cc839cc782) for commit messages. Commits (especially those reaching the default branch, for example `main`) must match the conventional-commit pattern so semantic release can derive versions.
 
 ## Message format
 
@@ -67,9 +67,9 @@ refactor(API-90): extract artifact registry client
 
 Branch `ABC-123-new-widget` → message must use scope `ABC-123`, e.g. `feat(ABC-123): add new feature`.
 
-### Merge requests into `main`
+### Merge requests into the default branch
 
-MR titles into `main` (or `master`) must use the same conventional prefixes as commits: `feat`, `fix`, or `BREAKING CHANGE` - **not** `feature`. GitLab squash merge uses the MR title as the squashed commit message; `feature(...)` does not trigger semantic-release. Branch commits still follow the `type:` forms above.
+MR titles into the default branch (for example `main` or `master`) must use the same conventional prefixes as commits: `feat`, `fix`, or `BREAKING CHANGE` - **not** `feature`. GitLab squash merge uses the MR title as the squashed commit message; `feature(...)` does not trigger semantic-release. Branch commits still follow the `type:` forms above.
 
 ## Commit workflow
 

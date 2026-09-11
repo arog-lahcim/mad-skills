@@ -1,6 +1,6 @@
 {
   "name": "mad-skills",
-  "version": "1.12.2",
+  "version": "1.13.0",
   "private": true,
   "description": "Personal agent skills for Cursor, Claude Desktop, Hermes Agent, and Warp",
   "repository": {

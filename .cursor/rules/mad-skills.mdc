@@ -11,3 +11,4 @@ Critical when creating or editing skills:
 
 - YAML frontmatter `description` / `name`: **ASCII only** (no raw emoji or ZWJ). Non-ASCII in `description` has crashed Cursor.
 - Skill body: use GitHub/GitLab `:shortcode:` names from https://github.com/ikatyang/emoji-cheat-sheet — never raw emoji characters.
+- README stays in lockstep with behavior changes — see [AGENTS.md](../../AGENTS.md) (`README stays in lockstep with changes`). `SKILL.md` is not the human doc.

@@ -12,10 +12,9 @@ description: >-
   verified. Budgets that volume against the substantive size of the change
   rather than the raw diff, and reports what it downgraded or dropped.
   Grounds the review in the linked ticket's acceptance criteria and the specs
-  it references. After posting, summarize drafts, explain how to steer them
-  (bullets under drafts), and end every pass by asking the user what to do
-  next as an interactive multiple-choice question instead of listing options
-  in prose. Never recreate drafts the user deleted unless they explicitly
+  it references. After posting, finish the full chat summary and steering
+  notes; do not wait on a next-step question - the user reviews drafts in
+  the UI. Never recreate drafts the user deleted unless they explicitly
   ask. On re-review, resolve fixed threads (award white_check_mark only when
   the author replied); do not leave acknowledgment replies. When a review
   leaves no required-change drafts and the MR looks ready to merge, award
@@ -46,7 +45,7 @@ Default comment language: **English** (unless the user requests otherwise).
 7. Create **draft** inline notes on **diff lines only** (see [Anchor on diff lines](#anchor-on-diff-lines)) plus an optional general overview note.
 8. If this review left **no required-change drafts** and the MR looks ready to merge, follow [Ready-to-merge signal](#ready-to-merge-signal). If this is a **re-review** that left new drafts for required changes, follow [Needs-work signal](#needs-work-signal) instead.
 9. Show the user a **short summary** of what was left as draft (or that none were needed, and which ready / needs-work reactions were set on the MR), plus the [cut list](#tell-the-user-what-was-cut). Keep drafts unpublished.
-10. After that summary, say briefly how to steer the drafts, then **ask what to do next as an interactive question** — see [After posting drafts](#after-posting-drafts).
+10. After that summary, say briefly how to steer the drafts, then **stop** — do not ask what to do next. See [After posting drafts](#after-posting-drafts).
 11. On a **follow-up apply pass** (user re-invokes this skill to process draft edits): follow [Apply draft feedback](#apply-draft-feedback). Do **not** republish deleted drafts.
 12. On a **re-review** (new commits and/or author replies): verify prior threads against the current diff, then follow [Resolved threads on re-review](#resolved-threads-on-re-review). If that re-review also leaves no new required-change drafts and the MR looks ready to merge, follow [Ready-to-merge signal](#ready-to-merge-signal). If it leaves new drafts for required changes, follow [Needs-work signal](#needs-work-signal).
 
@@ -91,41 +90,31 @@ If the review target is GitHub, use `gh` pending-review APIs equivalently: creat
 
 ## After posting drafts
 
-End the user-facing reply with three parts, in this order:
+End the user-facing reply with two parts, in this order. Write the **entire** reply before ending the turn.
 
-1. **Summary** — brief list of draft topics / files (or “merge-ready; :white_check_mark: plus authorship reaction(s) on MR” when applicable).
+1. **Summary** — brief list of draft topics / files (or "merge-ready; :white_check_mark: plus authorship reaction(s) on MR" when applicable), plus the [cut list](#tell-the-user-what-was-cut).
 2. **How to steer the drafts** — two short lines, no more:
 
 - Edit or **delete** any draft in the MR UI; deleted drafts stay gone.
 - Under a draft you want changed, append **bullet points** with decisions or rewrite instructions (e.g. `- yes, require ContainerSource — rewrite as a firm ask`). Free-form notes at the end of a draft also count.
 
-3. **Closing question** — ask what to do next interactively; do **not** list next steps as prose bullets.
+### Do not wait after drafts
 
-### Closing question
+After drafts are posted or updated (first review, apply-feedback, re-review), **do not** call `AskQuestion` or any other blocking question tool. Do not wait for the next step. A question tool ends the turn and drops remaining detail.
 
-Every pass (first review, apply-feedback, re-review) ends by **asking**, never with a bare list of options. Prefer the multiple-choice question tool (`AskQuestion`) so the user picks instead of retyping a command. If that tool is unavailable in the current environment, ask the same question in the chat reply as a short numbered choice the user can answer by number or label — still a question, not a prose bullet list of “what you can do”.
+The user reviews drafts in the MR/PR UI. Merge-ready passes with no drafts also skip a closer: report the ready signal and stop.
 
-Offer only the steps that apply to this pass, e.g.:
-
-- `Apply my draft edits now` — re-run [Apply draft feedback](#apply-draft-feedback) in this chat. Recommended whenever drafts exist.
-- `Re-review the latest commits` — fresh pass against the current diff.
-- `Publish the drafts as a review` — picking this **is** the explicit go-ahead to publish; without it, never publish.
-- `Nothing for now — I'll edit in the MR UI`.
-
-Rules:
-
-- One question, single choice, at most four options; recommended option first, suffixed `(Recommended)`.
-- Drop options that make no sense for the pass — no apply/publish option when nothing was drafted, no re-review option when no new commits are plausible yet.
-- Act on the answer in the same chat rather than restating it: an apply choice runs the apply pass, a re-review choice starts a new round.
-- Keep the typed equivalent working for users who prefer text:
+Keep later typed commands valid as a non-blocking note, not a menu that must be answered now:
 
 ```text
 /mad-draft-code-review apply draft feedback on <MR URL>
 ```
 
-Other valid phrasings: “apply my draft edits”, “update drafts from my bullets”, “process draft feedback” + the MR/PR link. Attaching this skill and pointing at the same MR is enough when the intent is clearly to apply feedback rather than start a full new review.
+Other valid phrasings: "apply my draft edits", "update drafts from my bullets", "process draft feedback" + the MR/PR link. Attaching this skill and pointing at the same MR is enough when the intent is clearly to apply feedback rather than start a full new review.
 
-Beyond the single publish option, do **not** pad the closing question or the reply with publish/approve guidance unless the user asked how to submit.
+Never publish unless the user later asks. Do **not** pad the reply with publish/approve guidance unless the user asked how to submit.
+
+`AskQuestion` stays allowed only for the **pre-post** budget overflow gate (choose which findings to keep before creating drafts). That is a real decision, not a closer.
 
 ## Apply draft feedback
 
@@ -141,7 +130,7 @@ When the user re-invokes this skill to apply feedback on existing drafts:
    - `PUT` the updated note **with full `position`** (GitLab) so the inline anchor is preserved.
 4. Leave drafts without new user marks unchanged.
 5. Do not start a full re-review of the diff unless the user also asked for one (new commits / re-review).
-6. Reply with a short summary of which drafts were updated (and which deleted ones were left deleted), then close with the interactive question — see [Closing question](#closing-question).
+6. Reply with a short summary of which drafts were updated (and which deleted ones were left deleted). Do not close with a question — see [Do not wait after drafts](#do-not-wait-after-drafts).
 
 Example: a draft ends with `- yes we do want to use ContainerSource … Update this comment.` → rewrite the body into a direct ask to use `ContainerSource` (with the cited links), drop the bullet, keep the same line anchor.
 
@@ -697,7 +686,7 @@ Wdyt?
 - [ ] Evidence marker honest and interlocked: `finding` only with `:dart:`, `:compass:` capped at `ask`, `:grey_question:` capped at `heads-up` / `nit` with "not blocking" in the body; `:compass:` and `:grey_question:` name the reasoning step or assumption in the parenthetical
 - [ ] Body emoji only if requested; not on every comment; varied, not repeated; skipped on serious findings; never after the signature; `PUT` updates include `position` alongside `note`
 - [ ] After posting: short draft summary **plus** two lines on steering drafts (edit/delete in UI, bullets under a draft)
-- [ ] Pass ends with an interactive `AskQuestion` (single choice, ≤4 applicable options, recommended first) — not a prose list of next steps; answer acted on in the same chat
+- [ ] Pass ends with a complete written summary and no blocking question after drafts; do not call `AskQuestion` or wait
 - [ ] Apply-feedback pass: only update drafts that still exist; never recreate user-deleted drafts unless explicitly asked; strip instructional bullets from the final draft text
 - [ ] No `Finding`-weight drafts + merge-ready → ready signal on the MR itself: :white_check_mark: plus :robot: for agent-only, :robot: + :technologist: for shared, or :technologist: for human-only; same authorship rules as comment signatures; clear stale current-user :speech_balloon: / :white_check_mark: / :robot: / :technologist: awards first; never treat reactions as approval
 - [ ] Re-review left required-change drafts after a prior ready signal → delete the current user's MR-level :white_check_mark: / :robot: / :technologist: ready reactions, award `speech_balloon` / :speech_balloon: instead; do not leave ready and needs-work reactions together

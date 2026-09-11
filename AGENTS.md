@@ -113,6 +113,24 @@ Skill character safety:
 - [ ] Reaction API examples use bare names where the host API requires them
 ```
 
+## README stays in lockstep with changes
+
+Documentation in this repository means **README** (`README.md` at the repo root
+and/or in a skill folder). `SKILL.md` is agent instructions / product, not the
+human doc.
+
+When changing skill behavior, install/MCP guidance, or a shared workflow:
+
+- Update or create the affected skill's `README.md` in the **same change**.
+- Update repo `README.md` / `INSTALL.md` when they still describe the old path.
+- Put workflow diagrams and human-facing process maps in the README.
+- Chat and plans are not documentation.
+- Do not finish a behavior change if the README still teaches the previous path
+  or is missing.
+
+Commit types stay the same: `SKILL.md` updates are `feat:` / `fix:`, not
+`docs:`. A README-only follow-up may use `docs:`.
+
 ## Commits for skill changes
 
 This repository is a collection of agent skills. Updates to a skill’s `SKILL.md`

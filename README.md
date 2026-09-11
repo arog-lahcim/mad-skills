@@ -16,6 +16,7 @@ Workflows stay generic; install paths and MCP config differ by host.
 - [`mad-plan-and-ship-ticket`](mad-plan-and-ship-ticket/SKILL.md) - orchestrate ticket delivery through draft review
 - [`mad-process-code-review-inbox`](mad-process-code-review-inbox/SKILL.md) - process pending review requests
 - [`mad-repo-readme`](mad-repo-readme/SKILL.md) - write repository README files
+- [`mad-ticket-progress`](mad-ticket-progress/SKILL.md) - record on-request progress comments on tickets
 - [`mad-ticket-split`](mad-ticket-split/SKILL.md) - split continuation work and close delivered parents
 - [`mad-update-skills`](mad-update-skills/SKILL.md) - update installed Mad Skills
 - [`mad-visible-links`](mad-visible-links/SKILL.md) - format links with visible destinations

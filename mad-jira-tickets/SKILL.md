@@ -1,6 +1,6 @@
 ---
 name: mad-jira-tickets
-description: Create and update Jira tickets with action-verb summaries and ADF descriptions (user story for Stories/Tasks; flexible bug layout with Evidence; References; Acceptance Criteria); set Blocks links and Rank order via REST. Use when creating, updating, or reformatting Jira issues (including Bugs), writing ticket descriptions, linking dependencies, ranking backlog order, or submitting descriptions via the Jira Cloud REST API.
+description: Create and update Jira tickets with action-verb summaries and ADF descriptions (user story for Stories/Tasks; flexible bug layout with Evidence; References; Acceptance Criteria); set Blocks links and Rank order via REST; post formatted comments as ADF. Use when creating, updating, or reformatting Jira issues (including Bugs), writing ticket descriptions or comments, linking dependencies, ranking backlog order, or submitting descriptions or comments via the Jira Cloud REST API.
 ---
 
 # Jira Tickets
@@ -84,9 +84,16 @@ Do not send rich comments through MCP Markdown or wiki markup. It can flatten
 the content into plain paragraphs or render formatting characters literally.
 Use the same ADF node rules as descriptions.
 
+Auth and site base are the same as descriptions (`JIRA_URL` / `JIRA_USERNAME` /
+`JIRA_API_TOKEN`).
+
 Keep the description concise and stable. Put detailed execution guidance or a
 long agent handoff in one structured ADF comment when it would make the
 description unwieldy.
+
+Progress / status / handoff comment **content** (when to post, slice bars,
+sections) is owned by [mad-ticket-progress](../mad-ticket-progress/SKILL.md).
+This section is write mechanics only.
 
 ### Never create validation issues
 

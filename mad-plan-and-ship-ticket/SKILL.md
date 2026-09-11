@@ -83,6 +83,11 @@ Execute the approved plan. Run the plan’s verification steps before shipping
 a second ticket by default. After pushing more commits to an open MR, run step
 6 again.
 
+**Progress comment:** only if the user asks to record status or a handoff on
+the ticket — then open and follow
+[mad-ticket-progress](../mad-ticket-progress/SKILL.md). Do not post
+unsolicited.
+
 ### 6. Draft review
 
 Hand off entirely to

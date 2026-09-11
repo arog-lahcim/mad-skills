@@ -1,6 +1,6 @@
 ---
 name: mad-jira-tickets
-description: Create and update Jira tickets with action-verb summaries and ADF descriptions (user story for Stories/Tasks; flexible bug layout with Evidence; References; Acceptance Criteria); set Blocks links and Rank order via REST. Use when creating, updating, or reformatting Jira issues (including Bugs), writing ticket descriptions, linking dependencies, ranking backlog order, or submitting descriptions via the Jira Cloud REST API.
+description: Create and update Jira tickets with action-verb summaries and ADF descriptions (user story for Stories/Tasks; flexible bug layout with Evidence; References; Acceptance Criteria); set Blocks links and Rank order via REST; post formatted comments as ADF. Use when creating, updating, or reformatting Jira issues (including Bugs), writing ticket descriptions or comments, linking dependencies, ranking backlog order, or submitting descriptions or comments via the Jira Cloud REST API.
 ---
 
 # Jira Tickets
@@ -66,6 +66,26 @@ Auth: Basic auth with `JIRA_USERNAME` + `JIRA_API_TOKEN` from the `mcp-atlassian
 Root document: `{"version": 1, "type": "doc", "content": [...]}`.
 
 MCP is fine for read-only operations (search, get issue) and non-description fields (summary, epic link, transitions, issue links metadata). **Do not use MCP to set description bodies.**
+
+### Comments (REST API, not MCP)
+
+Formatted comment bodies use the same ADF rules as descriptions. **Do not** use Atlassian MCP `jira_add_comment` / `jira_edit_comment` — Markdown is stored as plain-text ADF paragraphs, so headings, lists, `codeBlock`s, and link marks do not render.
+
+```
+POST /rest/api/3/issue/{issueKey}/comment
+{"body": <adf doc>}
+```
+
+Edit a comment you just posted:
+
+```
+PUT /rest/api/3/issue/{issueKey}/comment/{id}
+{"body": <adf doc>}
+```
+
+Auth and site base are the same as descriptions (`JIRA_URL` / `JIRA_USERNAME` / `JIRA_API_TOKEN`). Map headings, `bulletList`, `codeBlock`, and visible URL `link` marks like the description table above.
+
+Progress / status / handoff comment **content** (when to post, slice bars, sections) is owned by [mad-ticket-progress](../mad-ticket-progress/SKILL.md). This section is write mechanics only.
 
 ### Issue links — Blocks / is blocked by
 
@@ -360,6 +380,7 @@ Use a Bug user story instead of the problem-first opening only when it is natura
 - [ ] Text is in English (unless the user specified otherwise)
 - [ ] Summary starts with an action verb (`Implement`, `Check`, `Validate`, `Research`, `Fix`, etc.)
 - [ ] Description submitted via REST API v3 as ADF — not via MCP description field
+- [ ] Formatted comments submitted via REST API v3 as ADF (`POST`/`PUT` `.../comment`) — not via MCP `jira_add_comment` / `jira_edit_comment`
 - [ ] Description is concise with high information density — no fluff
 - [ ] Issue type chosen correctly: `Bug` for defects; Story/Task schema for feature/work items
 - [ ] **Stories/Tasks:** description starts with `**As a**...` / `**I want**...` / `**So that**...` with no preceding heading

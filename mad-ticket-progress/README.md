@@ -1,14 +1,35 @@
 # mad-ticket-progress
 
 On-request progress comments on a tracker ticket (Jira, GitHub Issues, or
-GitLab Issues). Agent instructions live in [`SKILL.md`](SKILL.md).
+GitLab Issues), plus checking acceptance-criteria boxes when conversation
+confirms they are implemented. Agent instructions live in
+[`SKILL.md`](SKILL.md).
 
 Stay generic — no org or project hard-coding.
 
 ## When
 
 The user asks to record ticket **progress**, **status**, or a **handoff** in a
-comment. Chat-only "where are we" stays in chat.
+comment. Chat-only "where are we" stays in chat. If they ask only to mark
+acceptance criteria, update the description and skip the comment.
+
+## Acceptance criteria checkboxes
+
+On the same request, update the issue **description** when chat confirms a
+criterion is done (and deployed, if that is what the criterion requires).
+
+```
+- [x] Confirmed in this conversation
+- [ ] Still planned, local-only, or unclear
+```
+
+Match on outcome, not exact wording. Do not rewrite criterion text. Leave
+the box unchecked when unsure. Name each checked item under What landed.
+
+| Host | Description write |
+|------|-------------------|
+| Jira | REST ADF: `taskItem` `TODO` -> `DONE` (keep `localId`) |
+| GitHub / GitLab | Issue body `- [ ]` -> `- [x]` only |
 
 ## What a comment looks like
 

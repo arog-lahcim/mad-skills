@@ -61,6 +61,7 @@ Auth: Basic auth with `JIRA_USERNAME` + `JIRA_API_TOKEN` from the `mcp-atlassian
 | Reference bullet + link | `bulletList` → `listItem` → `paragraph` with `text` + `link` mark |
 | `# Acceptance Criteria` | `heading` attrs `level: 1`, text `Acceptance Criteria` |
 | `- [ ] Criterion` | `taskList` → `taskItem` attrs `state: "TODO"` (each needs a unique `localId`); **`taskItem.content` is inline `text` nodes — do not wrap in `paragraph`** (paragraph wrapper returns `INVALID_INPUT`) |
+| `- [x] Criterion` | same `taskItem` with `state: "DONE"`; keep the existing `localId` when flipping a box |
 | Inline code (names, paths, types) | `text` with `code` mark — e.g. `artifacts`, `ArtifactMode`, `/data/graphql` |
 
 Root document: `{"version": 1, "type": "doc", "content": [...]}`.
@@ -92,8 +93,9 @@ long agent handoff in one structured ADF comment when it would make the
 description unwieldy.
 
 Progress / status / handoff comment **content** (when to post, slice bars,
-sections) is owned by [mad-ticket-progress](../mad-ticket-progress/SKILL.md).
-This section is write mechanics only.
+sections) and **when** to flip acceptance-criteria checkboxes are owned by
+[mad-ticket-progress](../mad-ticket-progress/SKILL.md). This section is
+write mechanics only.
 
 ### Never create validation issues
 
@@ -188,6 +190,8 @@ PUT /rest/agile/1.0/issue/rank
 ### Updating existing tickets
 
 When reformatting a ticket to match this schema — ADF structure, bold user-story labels, checkboxes, inline code, section headings — **preserve all existing content**. Change formatting only; do not drop, shorten, or rewrite sections, bullets, links, instructions, or acceptance criteria unless the user explicitly asks for content changes.
+
+When [mad-ticket-progress](../mad-ticket-progress/SKILL.md) confirms a criterion, flip that `taskItem` `state` from `TODO` to `DONE` via the same REST description PUT. Keep `localId`, criterion text, and every other node. Do not treat a checkbox-state flip as a reformat.
 
 Before submitting an update, compare the new description against the current issue and confirm every fact, link, and criterion is still present.
 
@@ -422,8 +426,8 @@ Use a Bug user story instead of the problem-first opening only when it is natura
 - [ ] `References` H1 and linked bullet list present when useful (omitted otherwise)
 - [ ] Description ends with `Acceptance Criteria` H1 and `taskList` checkboxes
 - [ ] All code-like identifiers use inline code marks (`code` in ADF) — not plain text
-- [ ] On updates: all prior description content preserved — styling-only changes unless user requested edits
-- [ ] `taskItem` content is inline `text` (no nested `paragraph`)
+- [ ] On updates: all prior description content preserved — styling-only changes unless user requested edits or [mad-ticket-progress](../mad-ticket-progress/SKILL.md) flips a confirmed AC `taskItem` to `DONE`
+- [ ] `taskItem` content is inline `text` (no nested `paragraph`); checked items use `state: "DONE"` with the same `localId`
 - [ ] If linking dependencies: `Blocks` created with `inwardIssue`=prerequisite, `outwardIssue`=dependent; UI verified (prerequisite **blocks**, dependent **is blocked by**)
 - [ ] If ordering stories: create new tickets in execution order when possible; otherwise Rank via `PUT /rest/agile/1.0/issue/rank` (backward `rankBeforeIssue` chain) and verify with `ORDER BY Rank ASC`
 - [ ] No temporary issue was created to validate ADF; batch keys match intent and the affected parent/sprint has no unexpected test issues

@@ -4,6 +4,22 @@ Personal [Agent Skills](https://agentskills.io) for **Cursor**, **Claude Desktop
 (also uploadable to Claude cloud Skills), **Hermes Agent**, **Warp**, and **VS Code**.
 Workflows stay generic; install paths and MCP config differ by host.
 
+## Skills
+
+- [`mad-agent-retro`](mad-agent-retro/SKILL.md) - analyze agent-assisted work and propose reusable guidance
+- [`mad-agentic`](mad-agentic/SKILL.md) - leave durable context for future agents
+- [`mad-check-connections`](mad-check-connections/SKILL.md) - verify MCP and CLI connectivity
+- [`mad-draft-code-review`](mad-draft-code-review/SKILL.md) - prepare unpublished review comments
+- [`mad-git-commit`](mad-git-commit/SKILL.md) - create conventional, atomic commits
+- [`mad-install-mcp-servers`](mad-install-mcp-servers/SKILL.md) - install supported MCP connections
+- [`mad-jira-tickets`](mad-jira-tickets/SKILL.md) - create and update Jira work items
+- [`mad-plan-and-ship-ticket`](mad-plan-and-ship-ticket/SKILL.md) - orchestrate ticket delivery through draft review
+- [`mad-process-code-review-inbox`](mad-process-code-review-inbox/SKILL.md) - process pending review requests
+- [`mad-repo-readme`](mad-repo-readme/SKILL.md) - write repository README files
+- [`mad-ticket-split`](mad-ticket-split/SKILL.md) - split continuation work and close delivered parents
+- [`mad-update-skills`](mad-update-skills/SKILL.md) - update installed Mad Skills
+- [`mad-visible-links`](mad-visible-links/SKILL.md) - format links with visible destinations
+
 ## Install with an agent
 
 Paste this prompt into a new agent chat (Cursor, Claude, Hermes, or Warp):

@@ -69,7 +69,7 @@ Branch `ABC-123-new-widget` → message must use scope `ABC-123`, e.g. `feat(ABC
 
 ### Merge requests into `main`
 
-MR titles into `main` may use only these prefixes: `fix`, `feature`, or `BREAKING CHANGE` (per the same guidelines). Prefer aligning the MR title with the release intent; commit messages still use the `type:` forms above (`feat` / `fix`, etc.).
+MR titles into `main` (or `master`) must use the same conventional prefixes as commits: `feat`, `fix`, or `BREAKING CHANGE` - **not** `feature`. GitLab squash merge uses the MR title as the squashed commit message; `feature(...)` does not trigger semantic-release. Branch commits still follow the `type:` forms above.
 
 ## Commit workflow
 

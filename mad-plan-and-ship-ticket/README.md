@@ -61,9 +61,10 @@ Ask **one** question if parent, labels, or sprint cannot be inferred.
 |------|-------------|
 | Ticket create/update, ADF, labels, sprint, Blocks/Rank, In Progress | **Read and follow** [`mad-jira-tickets`](../mad-jira-tickets/SKILL.md) |
 | Conventional commits / atomic commits / no attribution | **Read and follow** [`mad-git-commit`](../mad-git-commit/SKILL.md) |
-| Unpublished draft review, chat rename, :white_check_mark:/:speech_balloon:, closing question | **Read and follow** [`mad-draft-code-review`](../mad-draft-code-review/SKILL.md) |
+| Unpublished draft review, chat rename, :white_check_mark:/:speech_balloon:, chat summary | **Read and follow** [`mad-draft-code-review`](../mad-draft-code-review/SKILL.md) |
 | Human-visible titles + full URLs in ticket/MR text | **Read and follow** [`mad-visible-links`](../mad-visible-links/SKILL.md) when linking |
 | MCP auth probes if Atlassian/GitLab/GitHub fail | **Read and follow** [`mad-check-connections`](../mad-check-connections/SKILL.md) only when needed |
+| On-request ticket progress / handoff comment | **Read and follow** [`mad-ticket-progress`](../mad-ticket-progress/SKILL.md) only when the user asks |
 
 Rules for the agent (`SKILL.md`):
 

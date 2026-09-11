@@ -1,0 +1,17 @@
+---
+description: Require README updates in the same change as skill behavior
+alwaysApply: true
+---
+
+# README stays in lockstep
+
+A behavior change is incomplete until the matching **README** is updated in the
+same change. Documentation means README, not `SKILL.md`.
+
+- Update or create the affected skill's `README.md` (human doc; agent
+  instructions stay in `SKILL.md`).
+- Put process maps and flow diagrams in the README, not only in chat or a plan,
+  and not in `SKILL.md`.
+- Update repo-root or sibling READMEs that still describe the old behavior.
+- Follow [AGENTS.md](../../AGENTS.md) section "README stays in lockstep with
+  changes".

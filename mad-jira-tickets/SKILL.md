@@ -67,6 +67,50 @@ Root document: `{"version": 1, "type": "doc", "content": [...]}`.
 
 MCP is fine for read-only operations (search, get issue) and non-description fields (summary, epic link, transitions, issue links metadata). **Do not use MCP to set description bodies.**
 
+### Rich comments (REST ADF, not MCP Markdown)
+
+Use REST API v3 with ADF for comments that contain headings, lists, links,
+inline code, code blocks, or task items:
+
+```
+POST /rest/api/3/issue/{issueKey}/comment
+{"body": <adf doc>}
+
+PUT /rest/api/3/issue/{issueKey}/comment/{commentId}
+{"body": <adf doc>}
+```
+
+Do not send rich comments through MCP Markdown or wiki markup. It can flatten
+the content into plain paragraphs or render formatting characters literally.
+Use the same ADF node rules as descriptions.
+
+Keep the description concise and stable. Put detailed execution guidance or a
+long agent handoff in one structured ADF comment when it would make the
+description unwieldy.
+
+### Never create validation issues
+
+There is no validate-only Jira issue endpoint. **Never create a temporary
+issue** such as `TEST` or `ADF validation` to probe an ADF payload. It consumes
+a real key, changes Rank, can notify users, and can pollute a parent or sprint.
+
+On `400` / `INVALID_INPUT`, fix the payload and retry the intended issue. If a
+real issue was created with bad formatting, update that issue in place.
+
+After a batch create:
+
+1. Confirm the returned keys exactly match the intended issue list.
+2. Search the affected parent/sprint for unexpected test or validation issues.
+3. Treat unexpected issues as failed cleanup; report them and remove them only
+   with authorization for destructive tracker changes.
+
+### Empty success responses
+
+Jira link, rank, transition, and delete endpoints may return HTTP `204` with no
+body. Treat every expected `2xx` status as success; parse JSON only when the
+response body is non-empty. Verify the resulting links, Rank, or status with a
+read after the write.
+
 ### Issue links — Blocks / is blocked by
 
 Use link type `Blocks` so prerequisites show **blocks** dependents, and dependents show **is blocked by** prerequisites.
@@ -360,6 +404,7 @@ Use a Bug user story instead of the problem-first opening only when it is natura
 - [ ] Text is in English (unless the user specified otherwise)
 - [ ] Summary starts with an action verb (`Implement`, `Check`, `Validate`, `Research`, `Fix`, etc.)
 - [ ] Description submitted via REST API v3 as ADF — not via MCP description field
+- [ ] Rich comments submitted via REST API v3 as ADF — not MCP Markdown/wiki
 - [ ] Description is concise with high information density — no fluff
 - [ ] Issue type chosen correctly: `Bug` for defects; Story/Task schema for feature/work items
 - [ ] **Stories/Tasks:** description starts with `**As a**...` / `**I want**...` / `**So that**...` with no preceding heading
@@ -374,3 +419,5 @@ Use a Bug user story instead of the problem-first opening only when it is natura
 - [ ] `taskItem` content is inline `text` (no nested `paragraph`)
 - [ ] If linking dependencies: `Blocks` created with `inwardIssue`=prerequisite, `outwardIssue`=dependent; UI verified (prerequisite **blocks**, dependent **is blocked by**)
 - [ ] If ordering stories: create new tickets in execution order when possible; otherwise Rank via `PUT /rest/agile/1.0/issue/rank` (backward `rankBeforeIssue` chain) and verify with `ORDER BY Rank ASC`
+- [ ] No temporary issue was created to validate ADF; batch keys match intent and the affected parent/sprint has no unexpected test issues
+- [ ] Empty `2xx` / `204` responses were accepted without JSON parsing and verified with a read

@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 /**
  * Prepare Chrome for Testing session: tabs, highlight, options page, backdrop.
  * Env: DEBUG_PORT, ACTIVE_URL, ACTIVE_TAB_INDEX, TAB_URLS, OPTIONS_PAGE,
@@ -13,6 +17,27 @@ const TAB_URLS = process.env.TAB_URLS || '';
 const OPTIONS_PAGE = process.env.OPTIONS_PAGE || '';
 const HIGHLIGHT_TABS = process.env.HIGHLIGHT_TABS || '';
 const EXTRA_TAB_URL = process.env.EXTRA_TAB_URL || '';
+const EXTENSION_DIR = process.env.EXTENSION_DIR || '';
+
+const manifest = JSON.parse(
+  readFileSync(join(EXTENSION_DIR, 'manifest.json'), 'utf8'),
+);
+const serviceWorkerPath = `/${manifest.background?.service_worker || ''}`;
+const extensionId = createHash('sha256')
+  .update(EXTENSION_DIR)
+  .digest('hex')
+  .slice(0, 32)
+  .replace(/[0-9a-f]/g, (digit) => String.fromCharCode(97 + Number.parseInt(digit, 16)));
+const extensionPagePath = manifest.options_ui?.page
+  || manifest.options_page
+  || manifest.background?.service_worker;
+
+function isTargetExtensionWorker(target) {
+  if (target.type !== 'service_worker' || !target.url.startsWith('chrome-extension://')) {
+    return false;
+  }
+  return new URL(target.url).pathname === serviceWorkerPath;
+}
 
 function withLocale(url) {
   if (!LOCALE_SUFFIX || !/^https?:\/\//.test(url)) {
@@ -50,6 +75,17 @@ async function listTargets() {
   return response.json();
 }
 
+async function createTarget(url) {
+  const response = await fetch(
+    `http://127.0.0.1:${DEBUG_PORT}/json/new?${encodeURIComponent(url)}`,
+    { method: 'PUT' },
+  );
+  if (!response.ok) {
+    throw new Error(`Failed to create CDP target: ${response.status}`);
+  }
+  return response.json();
+}
+
 async function evaluateOnTarget(target, expression) {
   const ws = new WebSocket(target.webSocketDebuggerUrl);
   await new Promise((resolve, reject) => {
@@ -81,16 +117,31 @@ async function evaluateOnTarget(target, expression) {
 }
 
 async function wakeServiceWorker(targets) {
-  let worker = targets.find(
-    (target) => target.type === 'service_worker' && target.url.startsWith('chrome-extension://'),
-  );
+  let worker = targets.find(isTargetExtensionWorker);
   if (worker) {
     return worker;
   }
 
-  const extensionPage = targets.find(
-    (target) => target.type === 'page' && target.url.startsWith('chrome-extension://'),
+  let currentTargets = targets;
+  for (let attempt = 0; attempt < 20 && !worker; attempt += 1) {
+    currentTargets = await listTargets();
+    worker = currentTargets.find(isTargetExtensionWorker);
+    if (!worker) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  }
+  if (worker) {
+    return worker;
+  }
+
+  let extensionPage = currentTargets.find(
+    (target) => target.type === 'page' && new URL(target.url).host === extensionId,
   );
+  if (!extensionPage && extensionPagePath) {
+    extensionPage = await createTarget(
+      `chrome-extension://${extensionId}/${extensionPagePath.replace(/^\//, '')}`,
+    );
+  }
   if (!extensionPage) {
     throw new Error('No extension page or service worker found');
   }
@@ -99,12 +150,13 @@ async function wakeServiceWorker(targets) {
     extensionPage,
     "chrome.runtime.sendMessage({ type: 'mad-chrome-ss-wake' }).catch(() => undefined)",
   );
-  await new Promise((resolve) => setTimeout(resolve, 400));
-
-  const refreshed = await listTargets();
-  worker = refreshed.find(
-    (target) => target.type === 'service_worker' && target.url.startsWith('chrome-extension://'),
-  );
+  for (let attempt = 0; attempt < 20 && !worker; attempt += 1) {
+    const refreshed = await listTargets();
+    worker = refreshed.find(isTargetExtensionWorker);
+    if (!worker) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  }
   if (!worker) {
     throw new Error('Extension service worker not found after wake');
   }
@@ -130,7 +182,10 @@ function parseActiveTabIndex() {
     return null;
   }
   const index = Number(ACTIVE_TAB_INDEX);
-  return Number.isInteger(index) ? index : null;
+  if (!Number.isInteger(index) || index < 0) {
+    throw new Error('ACTIVE_TAB_INDEX must be a non-negative integer');
+  }
+  return index;
 }
 
 async function prepareViaWorker(worker, extensionId) {
@@ -145,6 +200,16 @@ async function prepareViaWorker(worker, extensionId) {
   const extraUrl = EXTRA_TAB_URL ? withLocale(EXTRA_TAB_URL) : '';
   const tabUrlList = parseTabUrls();
   const activeTabIndex = parseActiveTabIndex();
+  if (
+    activeTabIndex !== null
+    && highlight.length > 0
+    && !highlight.includes(activeTabIndex)
+  ) {
+    throw new Error('ACTIVE_TAB_INDEX must be included in HIGHLIGHT_TABS');
+  }
+  const orderedHighlight = activeTabIndex === null
+    ? highlight
+    : [activeTabIndex, ...highlight.filter((index) => index !== activeTabIndex)];
 
   const expression = `(async () => {
     const win = (await chrome.windows.getAll({ populate: true })).find((item) => item.type === 'normal');
@@ -158,6 +223,20 @@ async function prepareViaWorker(worker, extensionId) {
     }
 
     let tabs = (await chrome.tabs.query({ windowId: win.id })).sort((a, b) => a.index - b.index);
+    const waitForTabs = async (minimumCount) => {
+      const deadline = Date.now() + 15000;
+      while (Date.now() < deadline) {
+        const current = await chrome.tabs.query({ windowId: win.id });
+        if (
+          current.length >= minimumCount
+          && current.every((tab) => tab.status === 'complete')
+        ) {
+          return current.sort((a, b) => a.index - b.index);
+        }
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      }
+      throw new Error('Timed out waiting for tabs to finish loading');
+    };
 
     if (${JSON.stringify(extraUrl)}) {
       await chrome.tabs.create({ windowId: win.id, url: ${JSON.stringify(extraUrl)}, active: false });
@@ -191,10 +270,8 @@ async function prepareViaWorker(worker, extensionId) {
       }
     }
 
-    await new Promise((resolve) => setTimeout(resolve, tabUrlList.length > 2 ? 2500 : 1500));
-
-    tabs = (await chrome.tabs.query({ windowId: win.id })).sort((a, b) => a.index - b.index);
-    const highlight = ${JSON.stringify(highlight)};
+    tabs = await waitForTabs(Math.max(1, tabUrlList.length));
+    const highlight = ${JSON.stringify(orderedHighlight)};
     const activeTabIndex = ${JSON.stringify(activeTabIndex)};
     if (highlight.length) {
       await chrome.tabs.highlight({ windowId: win.id, tabs: highlight });
@@ -207,7 +284,7 @@ async function prepareViaWorker(worker, extensionId) {
       await chrome.tabs.update(tabs[0].id, { active: true });
     }
 
-    if (activeTabIndex !== null && tabs[activeTabIndex]) {
+    if (!highlight.length && activeTabIndex !== null && tabs[activeTabIndex]) {
       await chrome.tabs.update(tabs[activeTabIndex].id, { active: true });
     }
 
@@ -234,7 +311,6 @@ async function main() {
   await waitForDebugger();
   const targets = await listTargets();
   const worker = await wakeServiceWorker(targets);
-  const extensionId = new URL(worker.url).host;
   const result = await prepareViaWorker(worker, extensionId);
   console.log(JSON.stringify(result));
 }

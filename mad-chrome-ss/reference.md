@@ -18,24 +18,52 @@ Launch uses `--remote-debugging-port=$DEBUG_PORT` (default `9224`). The prepare
 script talks to `http://127.0.0.1:$DEBUG_PORT/json/list`.
 
 Wake a sleeping MV3 service worker by opening any `chrome-extension://` page target,
-then read the `service_worker` target URL for `Runtime.evaluate` calls.
+then match the `service_worker` target against `background.service_worker` from
+the unpacked extension's manifest. Do not select the first extension worker;
+Chrome for Testing can expose built-in extension workers too.
+If no extension target remains, derive the unpacked extension id from the
+absolute load path and open its options page before sending the wake message.
+
+Page preparation polls `tab.status === "complete"` with a timeout. Fixed sleeps
+are not evidence that pages are ready.
+
+## Dedicated profile
+
+Every default run creates `/tmp/mad-chrome-ss-profile.XXXXXX` with `mktemp`.
+The unique `--user-data-dir` isolates extensions, storage, locale, and browsing
+state and identifies the process owned by the run.
+
+Supplying a non-empty `PROFILE_DIR` requires `REUSE_PROFILE=true`. Never use the
+user's regular Chrome profile. Do not quit all Chrome for Testing processes;
+other automation may own them.
 
 ## Tab highlight vs Shift-click
 
 `chrome.tabs.highlight({ windowId, tabs: [indices] })` sets `highlighted: true` in
-the API. UI selection styling can be subtle; add an **unhighlighted** tab
-(`EXTRA_TAB_URL`) when the shot must show contrast.
+the API. The active tab must belong to that set. Put `ACTIVE_TAB_INDEX` first in
+the array to keep it active, e.g. `[2, 0, 1]`; activating an index outside the
+set collapses multi-selection. UI selection styling can be subtle; add an
+**unhighlighted** tab (`EXTRA_TAB_URL`) when the shot must show contrast.
+
+For context-menu screenshots, verify both the API state and plural native menu
+labels such as `Add Tabs` or `Mute Sites`. Singular labels mean the menu targets
+one tab.
 
 ## Context menu (generic)
 
 When `OPEN_CONTEXT_MENU=true`:
 
 1. Foreground window raised via AppleScript.
-2. Collect `AXRadioButton` elements (tab strip) in order.
-3. `perform action "AXShowMenu"` on the button at `CONTEXT_MENU_TAB_INDEX`.
-4. Warp cursor away from the menu before `screencapture` (avoids accidental hover).
+2. Read the prepared tab count from the CDP state.
+3. Calculate a tab-strip point from the window bounds and
+   `CONTEXT_MENU_TAB_INDEX`.
+4. Post a CoreGraphics right-click at that point.
+5. Warp cursor away from the menu before `screencapture` (avoids accidental hover).
 
-This skill does **not** name or target a specific menu row (extension-specific).
+Current Chrome builds may expose zero tab-strip `AXRadioButton` elements, so
+`AXShowMenu` is not the default. Use `CONTEXT_MENU_POINT=x,y` to override the
+calculated point when Chrome changes tab geometry. This skill does **not** name
+or target a specific menu row (extension-specific).
 
 ## Window capture
 
@@ -45,6 +73,16 @@ WINDOW_ID=$(swift scripts/find-window-id.swift "$PROCESS_NAME" "$FOREGROUND_TITL
 ```
 
 `screencapture -l` returns Retina-resolution PNG (often 2x logical size).
+
+For `OPEN_CONTEXT_MENU=true`, capture the selected display instead. Native menu
+windows can expand the window-id capture's alpha bounds and make the source
+nearly square. `crop-screen-to-size.py` reads the logical screen/window bounds,
+builds an exact target-ratio crop around the foreground window, then applies one
+uniform resize.
+
+The `about:blank` backdrop fills `NSScreen.main.visibleFrame`. Its dimensions
+must be queried for every run; hardcoded dimensions fail on different displays,
+scaling modes, menu-bar sizes, and monitor layouts.
 
 ## Crop
 
@@ -63,6 +101,18 @@ Never convert transparent RGBA directly to RGB (transparent pixels become black)
 If chrome is clipped or stretched, adjust capture window or bbox logic — do not
 commit.
 
+## Preview gate
+
+The orchestrator produces:
+
+1. `/tmp/mad-chrome-ss-raw-*.png`
+2. `/tmp/mad-chrome-ss-preview-*.png`
+3. A printed `promote-screenshot.sh` command
+
+Read the preview before promotion. `validate-screenshot.py` checks target
+dimensions and white outer corners, but it cannot judge framing, menu state, or
+semantic correctness.
+
 ## Locale helpers
 
 When `LOCALE_SUFFIX=1` (default), http(s) URLs without `hl=` get:
@@ -74,9 +124,9 @@ When `LOCALE_SUFFIX=1` (default), http(s) URLs without `hl=` get:
 
 | Path | Purpose |
 |------|---------|
-| `/tmp/mad-chrome-ss-profile-*` | Ephemeral user-data-dir |
+| `/tmp/mad-chrome-ss-profile.*` | Dedicated ephemeral user-data-dir |
 | `/tmp/mad-chrome-ss-raw-*.png` | Uncropped window capture |
-| `/tmp/mad-chrome-ss-framed-*.png` | Optional fullscreen debug frame |
+| `/tmp/mad-chrome-ss-preview-*.png` | Cropped preview awaiting visual approval |
 
 Delete when done; never commit.
 

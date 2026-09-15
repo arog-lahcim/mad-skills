@@ -2,23 +2,38 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SKILL_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 EXTENSION_DIR="${EXTENSION_DIR:?EXTENSION_DIR is required}"
 OUTPUT_PATH="${OUTPUT_PATH:?OUTPUT_PATH is required}"
 
 DEBUG_PORT="${DEBUG_PORT:-9224}"
-PROFILE_DIR="${PROFILE_DIR:-/tmp/mad-chrome-ss-profile-$$}"
+PROFILE_DIR="${PROFILE_DIR:-$(mktemp -d /tmp/mad-chrome-ss-profile.XXXXXX)}"
 WIDTH="${WIDTH:-1280}"
 HEIGHT="${HEIGHT:-800}"
+WINDOW_WIDTH="${WINDOW_WIDTH:-1280}"
+WINDOW_HEIGHT="${WINDOW_HEIGHT:-800}"
+FRAME_MARGIN="${FRAME_MARGIN:-48}"
+DISPLAY_INDEX="${DISPLAY_INDEX:-1}"
+TAB_STRIP_LEFT_INSET="${TAB_STRIP_LEFT_INSET:-100}"
+TAB_STRIP_RIGHT_INSET="${TAB_STRIP_RIGHT_INSET:-80}"
+TAB_STRIP_CENTER_Y="${TAB_STRIP_CENTER_Y:-18}"
+MAX_TAB_WIDTH="${MAX_TAB_WIDTH:-240}"
 PROCESS_NAME="${PROCESS_NAME:-Google Chrome for Testing}"
 FOREGROUND_TITLE_PREFIX="${FOREGROUND_TITLE_PREFIX:-}"
 OPEN_CONTEXT_MENU="${OPEN_CONTEXT_MENU:-false}"
 CONTEXT_MENU_TAB_INDEX="${CONTEXT_MENU_TAB_INDEX:-}"
+CONTEXT_MENU_POINT="${CONTEXT_MENU_POINT:-}"
 LOCALE_SUFFIX="${LOCALE_SUFFIX:-1}"
 
 RAW_CAPTURE="/tmp/mad-chrome-ss-raw-$$.png"
+PREVIEW_PATH="${PREVIEW_PATH:-/tmp/mad-chrome-ss-preview-$$.png}"
 SESSION_MARKER="/tmp/mad-chrome-ss-session-$$"
+
+if [[ ! -d "${EXTENSION_DIR}" ]]; then
+  echo "EXTENSION_DIR is not a directory: ${EXTENSION_DIR}" >&2
+  exit 1
+fi
+EXTENSION_DIR="$(cd "${EXTENSION_DIR}" && pwd)"
 
 export DEBUG_PORT PROFILE_DIR EXTENSION_DIR LOCALE_SUFFIX
 export ACTIVE_URL="${ACTIVE_URL:-}"
@@ -53,17 +68,23 @@ if ! python3 -c 'import PIL' 2>/dev/null; then
   exit 1
 fi
 
-# Close prior CfT sessions launched by this skill (best effort).
-if pgrep -x "Google Chrome for Testing" >/dev/null 2>&1; then
-  osascript -e 'tell application "Google Chrome for Testing" to quit' >/dev/null 2>&1 || true
-  sleep 1
-fi
-
 "${SCRIPT_DIR}/launch-session.sh" >/dev/null
-printf '%s\n' "${PROFILE_DIR}" >"${SESSION_MARKER}"
+SESSION_PID=""
+for _ in {1..20}; do
+  SESSION_PID="$(
+    pgrep -f -- "--user-data-dir=${PROFILE_DIR}" 2>/dev/null | tail -1 || true
+  )"
+  [[ -n "${SESSION_PID}" ]] && break
+  sleep 0.25
+done
+if [[ -z "${SESSION_PID}" ]]; then
+  echo "Could not identify Chrome process for PROFILE_DIR=${PROFILE_DIR}" >&2
+  exit 1
+fi
+printf 'profile=%s\npid=%s\n' "${PROFILE_DIR}" "${SESSION_PID}" >"${SESSION_MARKER}"
 
-sleep 2
-node "${SCRIPT_DIR}/cdp-prepare-session.mjs" >/tmp/mad-chrome-ss-prepare-$$.json
+PREPARE_STATE="/tmp/mad-chrome-ss-prepare-$$.json"
+node "${SCRIPT_DIR}/cdp-prepare-session.mjs" >"${PREPARE_STATE}"
 
 MENU_TAB_INDEX="${CONTEXT_MENU_TAB_INDEX:-}"
 if [[ -z "${MENU_TAB_INDEX}" && -n "${HIGHLIGHT_TABS}" ]]; then
@@ -71,21 +92,54 @@ if [[ -z "${MENU_TAB_INDEX}" && -n "${HIGHLIGHT_TABS}" ]]; then
 fi
 MENU_TAB_INDEX="${MENU_TAB_INDEX:-0}"
 
+read -r SCREEN_X SCREEN_Y SCREEN_WIDTH SCREEN_HEIGHT MENU_BAR_HEIGHT < <(
+  swift "${SCRIPT_DIR}/screen-frame.swift"
+)
+VISIBLE_Y=$((SCREEN_Y + MENU_BAR_HEIGHT))
+VISIBLE_HEIGHT=$((SCREEN_HEIGHT - MENU_BAR_HEIGHT))
+if (( WINDOW_WIDTH > SCREEN_WIDTH - 160 )); then
+  WINDOW_WIDTH=$((SCREEN_WIDTH - 160))
+fi
+if (( WINDOW_HEIGHT > VISIBLE_HEIGHT - 160 )); then
+  WINDOW_HEIGHT=$((VISIBLE_HEIGHT - 160))
+fi
+FOREGROUND_X=$((SCREEN_X + (SCREEN_WIDTH - WINDOW_WIDTH) / 2))
+FOREGROUND_Y=$((VISIBLE_Y + (VISIBLE_HEIGHT - WINDOW_HEIGHT) / 2))
+
+if [[ "${OPEN_CONTEXT_MENU}" == "true" && -z "${CONTEXT_MENU_POINT}" ]]; then
+  TAB_COUNT="$(
+    python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))["tabs"]))' \
+      "${PREPARE_STATE}"
+  )"
+  if (( MENU_TAB_INDEX < 0 || MENU_TAB_INDEX >= TAB_COUNT )); then
+    echo "CONTEXT_MENU_TAB_INDEX out of range: ${MENU_TAB_INDEX}/${TAB_COUNT}" >&2
+    exit 1
+  fi
+  TAB_WIDTH=$(( (WINDOW_WIDTH - TAB_STRIP_LEFT_INSET - TAB_STRIP_RIGHT_INSET) / TAB_COUNT ))
+  if (( TAB_WIDTH > MAX_TAB_WIDTH )); then
+    TAB_WIDTH="${MAX_TAB_WIDTH}"
+  fi
+  MENU_X=$((FOREGROUND_X + TAB_STRIP_LEFT_INSET + TAB_WIDTH * MENU_TAB_INDEX + TAB_WIDTH / 2))
+  MENU_Y=$((FOREGROUND_Y + TAB_STRIP_CENTER_Y))
+  CONTEXT_MENU_POINT="${MENU_X},${MENU_Y}"
+fi
+
 /usr/bin/osascript <<APPLESCRIPT
-set processName to "${PROCESS_NAME}"
+set processPid to ${SESSION_PID}
 set titlePrefix to "${FOREGROUND_TITLE_PREFIX}"
-set openMenu to "${OPEN_CONTEXT_MENU}"
-set menuTabIndex to ${MENU_TAB_INDEX}
 
 tell application "System Events"
-  tell process processName
+  set targetProcess to first application process whose unix id is processPid
+  tell targetProcess
     set frontmost to true
     set foregroundWindow to missing value
     repeat with candidate in windows
       try
         if titlePrefix is missing value or titlePrefix is "" then
-          set foregroundWindow to candidate
-          exit repeat
+          if name of candidate does not start with "about:blank" then
+            set foregroundWindow to candidate
+            exit repeat
+          end if
         else if name of candidate starts with titlePrefix then
           set foregroundWindow to candidate
           exit repeat
@@ -93,72 +147,85 @@ tell application "System Events"
       end try
     end repeat
     if foregroundWindow is missing value then error "Foreground window not found"
+    set foregroundName to name of foregroundWindow
 
-    set backgroundWindow to missing value
-    repeat with candidate in windows
-      try
-        if name of candidate starts with "about:blank" then
-          set backgroundWindow to candidate
-          exit repeat
-        end if
-      end try
-    end repeat
-    if backgroundWindow is not missing value then
-      tell backgroundWindow
-        set position to {0, 25}
-        set size to {1800, 1144}
-        perform action "AXRaise"
-      end tell
+    if exists (first window whose name starts with "about:blank") then
+      set size of (first window whose name starts with "about:blank") to {${SCREEN_WIDTH}, ${VISIBLE_HEIGHT}}
+      set position of (first window whose name starts with "about:blank") to {${SCREEN_X}, ${VISIBLE_Y}}
+      perform action "AXRaise" of (first window whose name starts with "about:blank")
     end if
 
-    tell foregroundWindow
-      set position to {260, 170}
-      set size to {1280, 800}
-      perform action "AXRaise"
-    end tell
+    set size of (first window whose name is foregroundName) to {${WINDOW_WIDTH}, ${WINDOW_HEIGHT}}
+    set position of (first window whose name is foregroundName) to {${FOREGROUND_X}, ${FOREGROUND_Y}}
+    perform action "AXRaise" of (first window whose name is foregroundName)
+    set foregroundWindow to first window whose name is foregroundName
+    try
+      set value of attribute "AXMain" of foregroundWindow to true
+    end try
+    try
+      set value of attribute "AXFocused" of foregroundWindow to true
+    end try
 
-    if openMenu is "true" then
-      set tabButtons to {}
-      repeat with e in (entire contents of foregroundWindow)
-        try
-          if role of e is "AXRadioButton" then set end of tabButtons to e
-        end try
-      end repeat
-      if (count of tabButtons) is 0 then error "No tab strip buttons found"
-      set menuIndex to menuTabIndex + 1
-      if menuIndex < 1 or menuIndex > (count of tabButtons) then
-        error "CONTEXT_MENU_TAB_INDEX out of range"
-      end if
-      perform action "AXShowMenu" of item menuIndex of tabButtons
-    end if
   end tell
 end tell
 APPLESCRIPT
 
 if [[ "${OPEN_CONTEXT_MENU}" == "true" ]]; then
-  swift -e 'import CoreGraphics; CGWarpMouseCursorPosition(CGPoint(x: 1700, y: 1000))' >/dev/null 2>&1 || true
+  IFS=',' read -r MENU_X MENU_Y <<<"${CONTEXT_MENU_POINT}"
+  swift -e "import CoreGraphics; let p=CGPoint(x:${MENU_X},y:${MENU_Y}); CGEvent(mouseEventSource:nil,mouseType:.rightMouseDown,mouseCursorPosition:p,mouseButton:.right)?.post(tap:.cghidEventTap); CGEvent(mouseEventSource:nil,mouseType:.rightMouseUp,mouseCursorPosition:p,mouseButton:.right)?.post(tap:.cghidEventTap)"
+  swift -e "import CoreGraphics; CGWarpMouseCursorPosition(CGPoint(x:${SCREEN_WIDTH}-20,y:${SCREEN_HEIGHT}-20))" >/dev/null 2>&1 || true
   sleep 0.5
 else
-  osascript -e "tell application \"System Events\" to tell process \"${PROCESS_NAME}\" to key code 53" >/dev/null 2>&1 || true
+  osascript -e "tell application \"System Events\" to tell (first application process whose unix id is ${SESSION_PID}) to key code 53" >/dev/null 2>&1 || true
 fi
 
 sleep 0.8
 
-WINDOW_ID="$(
-  swift "${SCRIPT_DIR}/find-window-id.swift" "${PROCESS_NAME}" "${FOREGROUND_TITLE_PREFIX}"
-)"
-"${SCRIPT_DIR}/capture-window.sh" "${WINDOW_ID}" "${RAW_CAPTURE}"
-python3 "${SCRIPT_DIR}/crop-to-size.py" "${RAW_CAPTURE}" "${OUTPUT_PATH}" --width "${WIDTH}" --height "${HEIGHT}"
+if [[ "${OPEN_CONTEXT_MENU}" == "true" ]]; then
+  read -r WINDOW_X WINDOW_Y ACTUAL_WINDOW_WIDTH ACTUAL_WINDOW_HEIGHT < <(
+    swift "${SCRIPT_DIR}/find-window-bounds.swift" \
+      "${PROCESS_NAME}" \
+      "${FOREGROUND_TITLE_PREFIX}" \
+      "${SESSION_PID}"
+  )
+  screencapture -x -D "${DISPLAY_INDEX}" "${RAW_CAPTURE}"
+  python3 "${SCRIPT_DIR}/crop-screen-to-size.py" \
+    "${RAW_CAPTURE}" \
+    "${PREVIEW_PATH}" \
+    --screen "${SCREEN_X},${SCREEN_Y},${SCREEN_WIDTH},${SCREEN_HEIGHT}" \
+    --window "${WINDOW_X},${WINDOW_Y},${ACTUAL_WINDOW_WIDTH},${ACTUAL_WINDOW_HEIGHT}" \
+    --width "${WIDTH}" \
+    --height "${HEIGHT}" \
+    --margin "${FRAME_MARGIN}"
+else
+  WINDOW_ID="$(
+    swift "${SCRIPT_DIR}/find-window-id.swift" \
+      "${PROCESS_NAME}" \
+      "${FOREGROUND_TITLE_PREFIX}" \
+      "${SESSION_PID}"
+  )"
+  "${SCRIPT_DIR}/capture-window.sh" "${WINDOW_ID}" "${RAW_CAPTURE}"
+  python3 "${SCRIPT_DIR}/crop-to-size.py" \
+    "${RAW_CAPTURE}" \
+    "${PREVIEW_PATH}" \
+    --width "${WIDTH}" \
+    --height "${HEIGHT}"
+fi
 
-python3 - <<PY
-from pathlib import Path
-from PIL import Image
-path = Path("${OUTPUT_PATH}")
-size = Image.open(path).size
-assert size == (${WIDTH}, ${HEIGHT}), size
-print(f"verified {path} {size[0]}x{size[1]}")
-PY
+python3 "${SCRIPT_DIR}/validate-screenshot.py" \
+  "${PREVIEW_PATH}" \
+  --width "${WIDTH}" \
+  --height "${HEIGHT}"
 
-echo "output=${OUTPUT_PATH}"
+echo "preview=${PREVIEW_PATH}"
+echo "intended_output=${OUTPUT_PATH}"
 echo "raw=${RAW_CAPTURE}"
 echo "profile=${PROFILE_DIR}"
+echo "pid=${SESSION_PID}"
+echo "After visually inspecting the preview, promote it with:"
+printf 'WIDTH=%q HEIGHT=%q %q %q %q\n' \
+  "${WIDTH}" \
+  "${HEIGHT}" \
+  "${SCRIPT_DIR}/promote-screenshot.sh" \
+  "${PREVIEW_PATH}" \
+  "${OUTPUT_PATH}"

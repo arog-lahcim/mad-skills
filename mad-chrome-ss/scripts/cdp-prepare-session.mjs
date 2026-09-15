@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 /**
  * Prepare Chrome for Testing session: tabs, highlight, options page, backdrop.
- * Env: DEBUG_PORT, ACTIVE_URL, OPTIONS_PAGE, HIGHLIGHT_TABS, EXTRA_TAB_URL,
- *      LOCALE_SUFFIX (1|0), FOREGROUND_WINDOW_TITLE (optional log)
+ * Env: DEBUG_PORT, ACTIVE_URL, ACTIVE_TAB_INDEX, TAB_URLS, OPTIONS_PAGE,
+ *      HIGHLIGHT_TABS, EXTRA_TAB_URL, LOCALE_SUFFIX (1|0)
  */
 
 const DEBUG_PORT = Number(process.env.DEBUG_PORT || 9224);
 const LOCALE_SUFFIX = process.env.LOCALE_SUFFIX !== '0';
 const ACTIVE_URL = process.env.ACTIVE_URL || '';
+const ACTIVE_TAB_INDEX = process.env.ACTIVE_TAB_INDEX ?? '';
+const TAB_URLS = process.env.TAB_URLS || '';
 const OPTIONS_PAGE = process.env.OPTIONS_PAGE || '';
 const HIGHLIGHT_TABS = process.env.HIGHLIGHT_TABS || '';
 const EXTRA_TAB_URL = process.env.EXTRA_TAB_URL || '';
@@ -116,6 +118,21 @@ function parseHighlightIndices() {
   return HIGHLIGHT_TABS.split(',').map((part) => Number(part.trim())).filter(Number.isInteger);
 }
 
+function parseTabUrls() {
+  if (!TAB_URLS.trim()) {
+    return [];
+  }
+  return TAB_URLS.split(',').map((part) => withLocale(part.trim())).filter(Boolean);
+}
+
+function parseActiveTabIndex() {
+  if (ACTIVE_TAB_INDEX === '') {
+    return null;
+  }
+  const index = Number(ACTIVE_TAB_INDEX);
+  return Number.isInteger(index) ? index : null;
+}
+
 async function prepareViaWorker(worker, extensionId) {
   const optionsUrl = OPTIONS_PAGE.startsWith('chrome-extension://')
     ? OPTIONS_PAGE
@@ -126,6 +143,8 @@ async function prepareViaWorker(worker, extensionId) {
   const highlight = parseHighlightIndices();
   const activeUrl = ACTIVE_URL ? withLocale(ACTIVE_URL) : '';
   const extraUrl = EXTRA_TAB_URL ? withLocale(EXTRA_TAB_URL) : '';
+  const tabUrlList = parseTabUrls();
+  const activeTabIndex = parseActiveTabIndex();
 
   const expression = `(async () => {
     const win = (await chrome.windows.getAll({ populate: true })).find((item) => item.type === 'normal');
@@ -145,26 +164,38 @@ async function prepareViaWorker(worker, extensionId) {
       tabs = (await chrome.tabs.query({ windowId: win.id })).sort((a, b) => a.index - b.index);
     }
 
-    const updates = [];
-    if (${JSON.stringify(activeUrl)}) {
-      updates.push({ index: 0, url: ${JSON.stringify(activeUrl)} });
-    }
-    if (${JSON.stringify(optionsUrl)}) {
-      const targetIndex = tabs.length > 2 ? 2 : Math.max(0, tabs.length - 1);
-      updates.push({ index: targetIndex, url: ${JSON.stringify(optionsUrl)} });
-    }
-
-    for (const update of updates) {
-      const tab = tabs[update.index];
-      if (tab) {
-        await chrome.tabs.update(tab.id, { url: update.url });
+    const tabUrlList = ${JSON.stringify(tabUrlList)};
+    if (tabUrlList.length) {
+      for (let index = 0; index < tabUrlList.length; index += 1) {
+        const url = tabUrlList[index];
+        if (tabs[index]) {
+          await chrome.tabs.update(tabs[index].id, { url });
+        } else {
+          await chrome.tabs.create({ windowId: win.id, url, active: false });
+        }
+      }
+    } else {
+      const updates = [];
+      if (${JSON.stringify(activeUrl)}) {
+        updates.push({ index: 0, url: ${JSON.stringify(activeUrl)} });
+      }
+      if (${JSON.stringify(optionsUrl)}) {
+        const targetIndex = tabs.length > 2 ? 2 : Math.max(0, tabs.length - 1);
+        updates.push({ index: targetIndex, url: ${JSON.stringify(optionsUrl)} });
+      }
+      for (const update of updates) {
+        const tab = tabs[update.index];
+        if (tab) {
+          await chrome.tabs.update(tab.id, { url: update.url });
+        }
       }
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await new Promise((resolve) => setTimeout(resolve, tabUrlList.length > 2 ? 2500 : 1500));
 
     tabs = (await chrome.tabs.query({ windowId: win.id })).sort((a, b) => a.index - b.index);
     const highlight = ${JSON.stringify(highlight)};
+    const activeTabIndex = ${JSON.stringify(activeTabIndex)};
     if (highlight.length) {
       await chrome.tabs.highlight({ windowId: win.id, tabs: highlight });
     } else if (${JSON.stringify(optionsUrl)}) {
@@ -174,6 +205,10 @@ async function prepareViaWorker(worker, extensionId) {
       }
     } else if (${JSON.stringify(activeUrl)}) {
       await chrome.tabs.update(tabs[0].id, { active: true });
+    }
+
+    if (activeTabIndex !== null && tabs[activeTabIndex]) {
+      await chrome.tabs.update(tabs[activeTabIndex].id, { active: true });
     }
 
     const background = await chrome.windows.create({ url: 'about:blank', focused: false });

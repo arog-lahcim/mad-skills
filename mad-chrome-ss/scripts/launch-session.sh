@@ -14,7 +14,7 @@ if [[ ! -d "${EXTENSION_DIR}" ]]; then
   exit 1
 fi
 
-APP_BUNDLE="$(cd "$(dirname "${CHROME_BIN}")/../../.." && pwd)"
+APP_BUNDLE="$(cd "$(dirname "${CHROME_BIN}")/../.." && pwd)"
 if [[ ! -d "${APP_BUNDLE}" ]]; then
   echo "Could not resolve Chrome app bundle from ${CHROME_BIN}" >&2
   exit 1

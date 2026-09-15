@@ -65,6 +65,8 @@ Same orchestrator; set any combination:
 | Variable | Example | Effect |
 |----------|---------|--------|
 | `OPTIONS_PAGE` | `options.html` or `chrome-extension://…/options.html` | Navigate a tab to the extension options page (relative paths resolved via extension id) |
+| `TAB_URLS` | comma-separated http(s) URLs | Set tab URLs by index at prepare time |
+| `ACTIVE_TAB_INDEX` | `2` | Active tab after highlight (e.g. content page while other tabs stay selected) |
 | `HIGHLIGHT_TABS` | `0,1,2` | Multi-select tabs (`chrome.tabs.highlight`) |
 | `OPEN_CONTEXT_MENU` | `true` | Right-click menu on one highlighted tab (generic `AXShowMenu`; no menu-item names in this skill) |
 | `CONTEXT_MENU_TAB_INDEX` | `1` | Zero-based tab index for the menu (default: first entry in `HIGHLIGHT_TABS`, else `0`) |

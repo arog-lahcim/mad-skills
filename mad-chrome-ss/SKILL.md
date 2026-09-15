@@ -47,6 +47,7 @@ Optional:
 | `PROCESS_NAME` | `Google Chrome for Testing` | Window owner for capture |
 | `FOREGROUND_TITLE_PREFIX` | *(empty)* | Match foreground window title prefix |
 | `LOCALE_SUFFIX` | `1` | Append `?hl=en` / `?hl=en&gl=US` to http(s) URLs |
+| `KEEP_SESSION` | `false` | Keep a failed run's browser and profile for diagnostics |
 
 Run from the skill directory:
 
@@ -68,6 +69,14 @@ Read the preview, then run the printed `promote-screenshot.sh` command to write
    its unique `--user-data-dir` and reported PID.
 5. Launch with English UI preferences (`--lang=en-US`,
    `--accept-lang=en-US,en`).
+6. Never let the session touch OS credential storage. The launch uses
+   `--use-mock-keychain` and `--password-store=basic`, so a screenshot run must
+   never raise a macOS keychain password prompt ("Chromium Safe Storage") or the
+   "Relaunch the browser to load your profile data" infobar. A prompt means the
+   flags are missing - stop and fix the launch, never type a password.
+7. A failed run kills only its own PID and deletes only a profile it created
+   with `mktemp`; captures, previews, promoted finals, and the diagnostics JSON
+   survive. Use `KEEP_SESSION=true` to keep the browser alive for inspection.
 
 ## User-specified variants
 
@@ -110,7 +119,10 @@ Task progress:
 
 1. **Preflight** — run the Accessibility check; install Pillow if missing.
 2. **Inputs** — `EXTENSION_DIR`, `OUTPUT_PATH`, and variant env vars.
-3. **Capture** — `./scripts/capture-active-tab.sh` (installs CfT via Playwright if needed).
+3. **Capture** — `./scripts/capture-active-tab.sh` (installs CfT via Playwright if
+   needed). It prints `diagnostics=` — a `/tmp` JSON with pid, profile,
+   debug port, capture mode, screen/window bounds, tab count, menu point, and
+   raw/preview paths. Read it first when a run misbehaves.
 4. **Verify** — confirm dimensions and white corners, then visually inspect:
    full window chrome + shadow, no desktop, no backdrop browser bar, no
    stretching.
@@ -134,7 +146,10 @@ Task progress:
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
 | `Accessibility: false` | Cursor not granted / not restarted | Enable + full restart |
-| `Extension service worker not found` | MV3 worker asleep | Script wakes via options page; retry |
+| `Extension service worker not found` | MV3 worker asleep | Script wakes via options page; read the reported worker state, then retry |
+| Session never becomes ready | Port conflict or dead launch | Read PID, CDP port, poll timeout, worker state from the error and diagnostics JSON; never raise a sleep |
+| Keychain password prompt | Launch missing `--use-mock-keychain` / `--password-store=basic` | Deny the prompt, restore the flags, re-run; never enter a password |
+| "Relaunch the browser..." infobar in shot | Safe Storage access was denied | Same fix as the keychain prompt |
 | `window not found` | Wrong `PROCESS_NAME` / title prefix | Set `FOREGROUND_TITLE_PREFIX` |
 | Developer mode blocked | Regular Chrome managed by policy | Use Chrome for Testing (this skill) |
 | Menu item hover in shot | Cursor over menu | Script warps cursor away before capture |

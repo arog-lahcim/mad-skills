@@ -7,7 +7,12 @@ EXTENSION_DIR="${EXTENSION_DIR:?EXTENSION_DIR is required}"
 OUTPUT_PATH="${OUTPUT_PATH:?OUTPUT_PATH is required}"
 
 DEBUG_PORT="${DEBUG_PORT:-9224}"
-PROFILE_DIR="${PROFILE_DIR:-$(mktemp -d /tmp/mad-chrome-ss-profile.XXXXXX)}"
+if [[ -n "${PROFILE_DIR:-}" ]]; then
+  OWNS_PROFILE=false
+else
+  PROFILE_DIR="$(mktemp -d /tmp/mad-chrome-ss-profile.XXXXXX)"
+  OWNS_PROFILE=true
+fi
 WIDTH="${WIDTH:-1280}"
 HEIGHT="${HEIGHT:-800}"
 WINDOW_WIDTH="${WINDOW_WIDTH:-1280}"
@@ -24,10 +29,113 @@ OPEN_CONTEXT_MENU="${OPEN_CONTEXT_MENU:-false}"
 CONTEXT_MENU_TAB_INDEX="${CONTEXT_MENU_TAB_INDEX:-}"
 CONTEXT_MENU_POINT="${CONTEXT_MENU_POINT:-}"
 LOCALE_SUFFIX="${LOCALE_SUFFIX:-1}"
+KEEP_SESSION="${KEEP_SESSION:-false}"
+PID_POLL_ATTEMPTS="${PID_POLL_ATTEMPTS:-20}"
+PID_POLL_INTERVAL="${PID_POLL_INTERVAL:-0.25}"
+PID_POLL_TIMEOUT="$(
+  awk -v attempts="${PID_POLL_ATTEMPTS}" -v interval="${PID_POLL_INTERVAL}" \
+    'BEGIN { printf "%.2f", attempts * interval }'
+)"
 
 RAW_CAPTURE="/tmp/mad-chrome-ss-raw-$$.png"
 PREVIEW_PATH="${PREVIEW_PATH:-/tmp/mad-chrome-ss-preview-$$.png}"
 SESSION_MARKER="/tmp/mad-chrome-ss-session-$$"
+PREPARE_STATE="/tmp/mad-chrome-ss-prepare-$$.json"
+DIAGNOSTICS_PATH="/tmp/mad-chrome-ss-diagnostics-$$.json"
+
+SESSION_PID=""
+CAPTURE_TITLE=""
+CAPTURE_MODE="window-id"
+SCREEN_BOUNDS=""
+WINDOW_BOUNDS=""
+TAB_COUNT=""
+MENU_POINT=""
+
+write_diagnostics() {
+  MAD_SS_DIAG_PATH="${DIAGNOSTICS_PATH}" \
+  MAD_SS_PID="${SESSION_PID}" \
+  MAD_SS_PROFILE="${PROFILE_DIR}" \
+  MAD_SS_DEBUG_PORT="${DEBUG_PORT}" \
+  MAD_SS_CAPTURE_MODE="${CAPTURE_MODE}" \
+  MAD_SS_WINDOW_TITLE="${CAPTURE_TITLE}" \
+  MAD_SS_SCREEN_BOUNDS="${SCREEN_BOUNDS}" \
+  MAD_SS_WINDOW_BOUNDS="${WINDOW_BOUNDS}" \
+  MAD_SS_TAB_COUNT="${TAB_COUNT}" \
+  MAD_SS_MENU_POINT="${MENU_POINT}" \
+  MAD_SS_RAW_PATH="${RAW_CAPTURE}" \
+  MAD_SS_PREVIEW_PATH="${PREVIEW_PATH}" \
+  MAD_SS_PREPARE_STATE="${PREPARE_STATE}" \
+  MAD_SS_PID_POLL_TIMEOUT="${PID_POLL_TIMEOUT}" \
+  python3 - <<'PY' || true
+import json
+import os
+
+
+def numbers(name, keys):
+    raw = os.environ.get(name, "").strip()
+    if not raw:
+        return None
+    parts = [part for part in raw.replace(" ", ",").split(",") if part]
+    if len(parts) != len(keys):
+        return None
+    try:
+        return dict(zip(keys, (int(float(part)) for part in parts)))
+    except ValueError:
+        return None
+
+
+def integer(name):
+    raw = os.environ.get(name, "").strip()
+    try:
+        return int(raw)
+    except ValueError:
+        return None
+
+
+diagnostics = {
+    "pid": integer("MAD_SS_PID"),
+    "profile": os.environ.get("MAD_SS_PROFILE") or None,
+    "debugPort": integer("MAD_SS_DEBUG_PORT"),
+    "captureMode": os.environ.get("MAD_SS_CAPTURE_MODE") or None,
+    "windowTitle": os.environ.get("MAD_SS_WINDOW_TITLE") or None,
+    "screenBounds": numbers("MAD_SS_SCREEN_BOUNDS", ("x", "y", "width", "height")),
+    "windowBounds": numbers("MAD_SS_WINDOW_BOUNDS", ("x", "y", "width", "height")),
+    "tabCount": integer("MAD_SS_TAB_COUNT"),
+    "menuPoint": numbers("MAD_SS_MENU_POINT", ("x", "y")),
+    "rawPath": os.environ.get("MAD_SS_RAW_PATH") or None,
+    "previewPath": os.environ.get("MAD_SS_PREVIEW_PATH") or None,
+    "prepareStatePath": os.environ.get("MAD_SS_PREPARE_STATE") or None,
+    "pidPollTimeoutSeconds": float(os.environ.get("MAD_SS_PID_POLL_TIMEOUT") or 0) or None,
+}
+
+with open(os.environ["MAD_SS_DIAG_PATH"], "w", encoding="utf-8") as handle:
+    json.dump(diagnostics, handle, indent=2)
+    handle.write("\n")
+PY
+}
+
+on_exit() {
+  local status=$?
+  if (( status == 0 )); then
+    return
+  fi
+  write_diagnostics
+  if [[ "${KEEP_SESSION}" == "true" ]]; then
+    printf 'KEEP_SESSION=true: session left running for diagnostics (pid=%s profile=%s debug_port=%s diagnostics=%s)\n' \
+      "${SESSION_PID:-unknown}" "${PROFILE_DIR}" "${DEBUG_PORT}" "${DIAGNOSTICS_PATH}" >&2
+    return
+  fi
+  if [[ -n "${SESSION_PID}" ]] && kill -0 "${SESSION_PID}" 2>/dev/null; then
+    kill "${SESSION_PID}" 2>/dev/null || true
+  fi
+  if [[ "${OWNS_PROFILE}" == "true" && "${PROFILE_DIR}" == /tmp/mad-chrome-ss-profile.* ]]; then
+    rm -rf "${PROFILE_DIR}"
+  fi
+  rm -f "${SESSION_MARKER}"
+  printf 'cleaned up failed run (pid=%s profile=%s). Captures kept: %s %s. Diagnostics: %s. Set KEEP_SESSION=true to keep the session next time.\n' \
+    "${SESSION_PID:-none}" "${PROFILE_DIR}" "${RAW_CAPTURE}" "${PREVIEW_PATH}" "${DIAGNOSTICS_PATH}" >&2
+}
+trap on_exit EXIT
 
 if [[ ! -d "${EXTENSION_DIR}" ]]; then
   echo "EXTENSION_DIR is not a directory: ${EXTENSION_DIR}" >&2
@@ -69,22 +177,31 @@ if ! python3 -c 'import PIL' 2>/dev/null; then
 fi
 
 "${SCRIPT_DIR}/launch-session.sh" >/dev/null
-SESSION_PID=""
-for _ in {1..20}; do
+for _ in $(seq 1 "${PID_POLL_ATTEMPTS}"); do
   SESSION_PID="$(
     pgrep -f -- "--user-data-dir=${PROFILE_DIR}" 2>/dev/null | tail -1 || true
   )"
   [[ -n "${SESSION_PID}" ]] && break
-  sleep 0.25
+  sleep "${PID_POLL_INTERVAL}"
 done
 if [[ -z "${SESSION_PID}" ]]; then
-  echo "Could not identify Chrome process for PROFILE_DIR=${PROFILE_DIR}" >&2
+  printf 'No Chrome process owns this session after %ss of polling: profile=%s debug_port=%s. Check the launch output; a longer fixed sleep is not the fix.\n' \
+    "${PID_POLL_TIMEOUT}" "${PROFILE_DIR}" "${DEBUG_PORT}" >&2
   exit 1
 fi
 printf 'profile=%s\npid=%s\n' "${PROFILE_DIR}" "${SESSION_PID}" >"${SESSION_MARKER}"
 
-PREPARE_STATE="/tmp/mad-chrome-ss-prepare-$$.json"
-node "${SCRIPT_DIR}/cdp-prepare-session.mjs" >"${PREPARE_STATE}"
+export SESSION_PID
+if ! node "${SCRIPT_DIR}/cdp-prepare-session.mjs" >"${PREPARE_STATE}"; then
+  printf 'CDP session preparation failed: pid=%s debug_port=%s profile=%s. Readiness is polled (CDP handshake, tab status, service worker); inspect %s and %s instead of adding sleeps.\n' \
+    "${SESSION_PID}" "${DEBUG_PORT}" "${PROFILE_DIR}" "${PREPARE_STATE}" "${DIAGNOSTICS_PATH}" >&2
+  exit 1
+fi
+
+TAB_COUNT="$(
+  python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))["tabs"]))' \
+    "${PREPARE_STATE}"
+)"
 
 MENU_TAB_INDEX="${CONTEXT_MENU_TAB_INDEX:-}"
 if [[ -z "${MENU_TAB_INDEX}" && -n "${HIGHLIGHT_TABS}" ]]; then
@@ -95,6 +212,7 @@ MENU_TAB_INDEX="${MENU_TAB_INDEX:-0}"
 read -r SCREEN_X SCREEN_Y SCREEN_WIDTH SCREEN_HEIGHT MENU_BAR_HEIGHT < <(
   swift "${SCRIPT_DIR}/screen-frame.swift"
 )
+SCREEN_BOUNDS="${SCREEN_X},${SCREEN_Y},${SCREEN_WIDTH},${SCREEN_HEIGHT}"
 VISIBLE_Y=$((SCREEN_Y + MENU_BAR_HEIGHT))
 VISIBLE_HEIGHT=$((SCREEN_HEIGHT - MENU_BAR_HEIGHT))
 if (( WINDOW_WIDTH > SCREEN_WIDTH - 160 )); then
@@ -107,10 +225,6 @@ FOREGROUND_X=$((SCREEN_X + (SCREEN_WIDTH - WINDOW_WIDTH) / 2))
 FOREGROUND_Y=$((VISIBLE_Y + (VISIBLE_HEIGHT - WINDOW_HEIGHT) / 2))
 
 if [[ "${OPEN_CONTEXT_MENU}" == "true" && -z "${CONTEXT_MENU_POINT}" ]]; then
-  TAB_COUNT="$(
-    python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))["tabs"]))' \
-      "${PREPARE_STATE}"
-  )"
   if (( MENU_TAB_INDEX < 0 || MENU_TAB_INDEX >= TAB_COUNT )); then
     echo "CONTEXT_MENU_TAB_INDEX out of range: ${MENU_TAB_INDEX}/${TAB_COUNT}" >&2
     exit 1
@@ -124,7 +238,7 @@ if [[ "${OPEN_CONTEXT_MENU}" == "true" && -z "${CONTEXT_MENU_POINT}" ]]; then
   CONTEXT_MENU_POINT="${MENU_X},${MENU_Y}"
 fi
 
-/usr/bin/osascript <<APPLESCRIPT
+FOREGROUND_NAME="$(/usr/bin/osascript <<APPLESCRIPT
 set processPid to ${SESSION_PID}
 set titlePrefix to "${FOREGROUND_TITLE_PREFIX}"
 
@@ -166,9 +280,16 @@ tell application "System Events"
       set value of attribute "AXFocused" of foregroundWindow to true
     end try
 
+    return foregroundName
   end tell
 end tell
 APPLESCRIPT
+)"
+if [[ -n "${FOREGROUND_TITLE_PREFIX}" ]]; then
+  CAPTURE_TITLE="${FOREGROUND_TITLE_PREFIX}"
+else
+  CAPTURE_TITLE="${FOREGROUND_NAME% - ${PROCESS_NAME}}"
+fi
 
 if [[ "${OPEN_CONTEXT_MENU}" == "true" ]]; then
   IFS=',' read -r MENU_X MENU_Y <<<"${CONTEXT_MENU_POINT}"
@@ -182,12 +303,15 @@ fi
 sleep 0.8
 
 if [[ "${OPEN_CONTEXT_MENU}" == "true" ]]; then
+  CAPTURE_MODE="display-crop"
+  MENU_POINT="${CONTEXT_MENU_POINT}"
   read -r WINDOW_X WINDOW_Y ACTUAL_WINDOW_WIDTH ACTUAL_WINDOW_HEIGHT < <(
     swift "${SCRIPT_DIR}/find-window-bounds.swift" \
       "${PROCESS_NAME}" \
-      "${FOREGROUND_TITLE_PREFIX}" \
+      "${CAPTURE_TITLE}" \
       "${SESSION_PID}"
   )
+  WINDOW_BOUNDS="${WINDOW_X},${WINDOW_Y},${ACTUAL_WINDOW_WIDTH},${ACTUAL_WINDOW_HEIGHT}"
   screencapture -x -D "${DISPLAY_INDEX}" "${RAW_CAPTURE}"
   python3 "${SCRIPT_DIR}/crop-screen-to-size.py" \
     "${RAW_CAPTURE}" \
@@ -201,8 +325,14 @@ else
   WINDOW_ID="$(
     swift "${SCRIPT_DIR}/find-window-id.swift" \
       "${PROCESS_NAME}" \
-      "${FOREGROUND_TITLE_PREFIX}" \
+      "${CAPTURE_TITLE}" \
       "${SESSION_PID}"
+  )"
+  WINDOW_BOUNDS="$(
+    swift "${SCRIPT_DIR}/find-window-bounds.swift" \
+      "${PROCESS_NAME}" \
+      "${CAPTURE_TITLE}" \
+      "${SESSION_PID}" 2>/dev/null || true
   )"
   "${SCRIPT_DIR}/capture-window.sh" "${WINDOW_ID}" "${RAW_CAPTURE}"
   python3 "${SCRIPT_DIR}/crop-to-size.py" \
@@ -211,6 +341,8 @@ else
     --width "${WIDTH}" \
     --height "${HEIGHT}"
 fi
+
+write_diagnostics
 
 python3 "${SCRIPT_DIR}/validate-screenshot.py" \
   "${PREVIEW_PATH}" \
@@ -222,6 +354,7 @@ echo "intended_output=${OUTPUT_PATH}"
 echo "raw=${RAW_CAPTURE}"
 echo "profile=${PROFILE_DIR}"
 echo "pid=${SESSION_PID}"
+echo "diagnostics=${DIAGNOSTICS_PATH}"
 echo "After visually inspecting the preview, promote it with:"
 printf 'WIDTH=%q HEIGHT=%q %q %q %q\n' \
   "${WIDTH}" \

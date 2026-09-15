@@ -10,6 +10,7 @@ import { join } from 'node:path';
  */
 
 const DEBUG_PORT = Number(process.env.DEBUG_PORT || 9224);
+const SESSION_PID = process.env.SESSION_PID || 'unknown';
 const LOCALE_SUFFIX = process.env.LOCALE_SUFFIX !== '0';
 const ACTIVE_URL = process.env.ACTIVE_URL || '';
 const ACTIVE_TAB_INDEX = process.env.ACTIVE_TAB_INDEX ?? '';
@@ -52,6 +53,14 @@ function withLocale(url) {
   return url.includes('?') ? `${url}&hl=en` : `${url}?hl=en`;
 }
 
+const POLL_INTERVAL_MS = 250;
+const WORKER_POLL_INTERVAL_MS = 100;
+const WORKER_POLL_ATTEMPTS = 20;
+
+function seconds(attempts, intervalMs) {
+  return ((attempts * intervalMs) / 1000).toFixed(1);
+}
+
 async function waitForDebugger(maxAttempts = 40) {
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     try {
@@ -62,9 +71,12 @@ async function waitForDebugger(maxAttempts = 40) {
     } catch {
       // retry
     }
-    await new Promise((resolve) => setTimeout(resolve, 250));
+    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
   }
-  throw new Error(`CDP not available on port ${DEBUG_PORT}`);
+  throw new Error(
+    `CDP not available on port ${DEBUG_PORT} after ${seconds(maxAttempts, POLL_INTERVAL_MS)}s of polling `
+    + `(pid=${SESSION_PID}); check for a port conflict or a launch that never opened the port`,
+  );
 }
 
 async function listTargets() {
@@ -117,21 +129,25 @@ async function evaluateOnTarget(target, expression) {
 }
 
 async function wakeServiceWorker(targets) {
+  const state = { state: 'missing', wakeAttempted: false, pollTimeoutSeconds: null };
   let worker = targets.find(isTargetExtensionWorker);
   if (worker) {
-    return worker;
+    state.state = 'running';
+    return { worker, state };
   }
 
   let currentTargets = targets;
-  for (let attempt = 0; attempt < 20 && !worker; attempt += 1) {
+  for (let attempt = 0; attempt < WORKER_POLL_ATTEMPTS && !worker; attempt += 1) {
     currentTargets = await listTargets();
     worker = currentTargets.find(isTargetExtensionWorker);
     if (!worker) {
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, WORKER_POLL_INTERVAL_MS));
     }
   }
+  state.pollTimeoutSeconds = Number(seconds(WORKER_POLL_ATTEMPTS, WORKER_POLL_INTERVAL_MS));
   if (worker) {
-    return worker;
+    state.state = 'running-after-poll';
+    return { worker, state };
   }
 
   let extensionPage = currentTargets.find(
@@ -143,24 +159,34 @@ async function wakeServiceWorker(targets) {
     );
   }
   if (!extensionPage) {
-    throw new Error('No extension page or service worker found');
+    throw new Error(
+      `No extension page or service worker found: port=${DEBUG_PORT} pid=${SESSION_PID} `
+      + `serviceWorkerState=missing after ${state.pollTimeoutSeconds}s of polling; `
+      + `targets=${currentTargets.map((target) => target.type).join(',') || 'none'}`,
+    );
   }
 
+  state.wakeAttempted = true;
   await evaluateOnTarget(
     extensionPage,
     "chrome.runtime.sendMessage({ type: 'mad-chrome-ss-wake' }).catch(() => undefined)",
   );
-  for (let attempt = 0; attempt < 20 && !worker; attempt += 1) {
+  for (let attempt = 0; attempt < WORKER_POLL_ATTEMPTS && !worker; attempt += 1) {
     const refreshed = await listTargets();
     worker = refreshed.find(isTargetExtensionWorker);
     if (!worker) {
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, WORKER_POLL_INTERVAL_MS));
     }
   }
   if (!worker) {
-    throw new Error('Extension service worker not found after wake');
+    throw new Error(
+      `Extension service worker not found after wake: port=${DEBUG_PORT} pid=${SESSION_PID} `
+      + `serviceWorkerState=asleep serviceWorkerPath=${serviceWorkerPath} `
+      + `pollTimeout=${state.pollTimeoutSeconds}s per phase`,
+    );
   }
-  return worker;
+  state.state = 'woken';
+  return { worker, state };
 }
 
 function parseHighlightIndices() {
@@ -310,9 +336,9 @@ async function prepareViaWorker(worker, extensionId) {
 async function main() {
   await waitForDebugger();
   const targets = await listTargets();
-  const worker = await wakeServiceWorker(targets);
+  const { worker, state } = await wakeServiceWorker(targets);
   const result = await prepareViaWorker(worker, extensionId);
-  console.log(JSON.stringify(result));
+  console.log(JSON.stringify({ ...result, serviceWorker: state, debugPort: DEBUG_PORT }));
 }
 
 main().catch((error) => {

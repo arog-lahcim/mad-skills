@@ -33,7 +33,11 @@ for window in info {
   }
 
   let title = window[kCGWindowName as String] as? String ?? ""
-  if !titlePrefix.isEmpty && !title.hasPrefix(titlePrefix) {
+  if titlePrefix.isEmpty {
+    if title.hasPrefix("about:blank") {
+      continue
+    }
+  } else if !title.hasPrefix(titlePrefix) {
     continue
   }
 

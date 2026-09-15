@@ -28,11 +28,46 @@ path only after visual inspection. Git/LFS/commit is not part of this skill.
 - Every default run creates a new profile with `mktemp`; the user's normal
   Chrome profile is never reused.
 - A non-empty supplied profile requires `REUSE_PROFILE=true`.
+- The session never touches OS credential storage: `--use-mock-keychain` and
+  `--password-store=basic` mean no macOS keychain password prompt and no
+  "Relaunch the browser..." infobar in the shot. If a prompt ever appears, deny it
+  and treat it as a launch-flag bug.
+- A failed run cleans up after itself: it kills only the PID it launched and
+  deletes only a profile it created. Other Chrome for Testing sessions, the raw
+  capture, the preview, and any promoted final file are left alone.
+- `KEEP_SESSION=true` keeps a failed run's browser and profile alive for
+  diagnostics.
 - The backdrop dimensions come from the current display, not hardcoded pixels.
 - Context-menu captures use a full-display source; ordinary pages use
   window-id capture.
 - Final output keeps the source aspect ratio and uses a white canvas. It is
   never stretched to fit.
+
+## Readiness and diagnostics
+
+Nothing waits on a guessed delay: the run polls the CDP handshake, the session
+PID, tab load status, and the MV3 service worker, and every timeout message
+names the PID, the debug port, the exhausted timeout, and the worker state.
+
+Each run also writes a diagnostics JSON to `/tmp` and prints its path as
+`diagnostics=`:
+
+```
+capture-active-tab.sh
+  |-- launch-session.sh ......... dedicated profile + debug port
+  |-- poll: PID by --user-data-dir
+  |-- cdp-prepare-session.mjs ... poll: CDP, tabs, service worker
+  |-- AppleScript ............... re-resolve window per size/position/AXRaise,
+  |                               return its title for capture matching
+  |-- screencapture ............. window id  OR  display crop
+  |-- diagnostics JSON .......... pid, profile, debugPort, captureMode,
+  |                               screenBounds, windowBounds, tabCount,
+  |                               menuPoint, rawPath, previewPath
+  `-- preview gate .............. visual check, then promote-screenshot.sh
+```
+
+On failure the same JSON is written before cleanup, so the run leaves evidence
+rather than a silent exit.
 
 ## Variants (env-driven)
 

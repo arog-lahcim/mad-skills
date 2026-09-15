@@ -40,6 +40,10 @@ open -na "${APP_BUNDLE}" --args \
   --accept-lang=en-US,en \
   --no-first-run \
   --disable-default-apps \
+  --use-mock-keychain \
+  --password-store=basic \
+  --no-default-browser-check \
+  --disable-sync \
   --new-window \
   "${URL_ARRAY[@]}"
 

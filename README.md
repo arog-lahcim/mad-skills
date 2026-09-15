@@ -9,6 +9,7 @@ Workflows stay generic; install paths and MCP config differ by host.
 - [`mad-agent-retro`](mad-agent-retro/SKILL.md) - analyze agent-assisted work and propose reusable guidance
 - [`mad-agentic`](mad-agentic/SKILL.md) - leave durable context for future agents
 - [`mad-check-connections`](mad-check-connections/SKILL.md) - verify MCP and CLI connectivity
+- [`mad-chrome-ss`](mad-chrome-ss/SKILL.md) - capture real Chrome extension UI screenshots on macOS
 - [`mad-draft-code-review`](mad-draft-code-review/SKILL.md) - prepare unpublished review comments
 - [`mad-git-commit`](mad-git-commit/SKILL.md) - create conventional, atomic commits
 - [`mad-install-mcp-servers`](mad-install-mcp-servers/SKILL.md) - install supported MCP connections

@@ -1,8 +1,9 @@
 # mad-chrome-ss
 
 Real **Chrome extension UI screenshots** on macOS: Chrome for Testing, optional
-`about:blank` backdrop (tmp only), window-id capture, alpha-bbox crop to a
-parametric size. Agent instructions: [`SKILL.md`](SKILL.md).
+`about:blank` backdrop (tmp only), window-id capture, and aspect-preserving
+alpha-bbox fit onto a white canvas of a parametric size. Agent instructions:
+[`SKILL.md`](SKILL.md).
 
 Stay generic — no project names, no store-specific copy.
 
@@ -40,4 +41,4 @@ not part of this skill.
 | `scripts/cdp-prepare-session.mjs` | Tabs, highlight, backdrop, options page |
 | `scripts/find-window-id.swift` | CGWindowList -> window id |
 | `scripts/capture-window.sh` | `screencapture -l` |
-| `scripts/crop-to-size.py` | Alpha bbox crop + resize |
+| `scripts/crop-to-size.py` | Alpha bbox crop + aspect-preserving fit on white |

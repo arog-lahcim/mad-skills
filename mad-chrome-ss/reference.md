@@ -53,10 +53,15 @@ WINDOW_ID=$(swift scripts/find-window-id.swift "$PROCESS_NAME" "$FOREGROUND_TITL
 1. Open RGBA PNG.
 2. `alpha.getbbox()` for non-transparent pixels (drops window shadow padding when present).
 3. If no alpha bbox, fall back to content bbox vs near-white background.
-4. `LANCZOS` resize to `WIDTH` x `HEIGHT`.
+4. Compute one uniform scale factor (`min(target_width/source_width,
+   target_height/source_height)`).
+5. `LANCZOS` resize with the original aspect ratio.
+6. Alpha-composite the result onto a centered white `WIDTH` x `HEIGHT` canvas.
 
 Final assets must show the **full** browser window (title bar, tabs, shadow margin).
-If chrome is clipped, adjust capture window or bbox logic — do not commit.
+Never convert transparent RGBA directly to RGB (transparent pixels become black).
+If chrome is clipped or stretched, adjust capture window or bbox logic — do not
+commit.
 
 ## Locale helpers
 

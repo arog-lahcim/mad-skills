@@ -21,7 +21,7 @@ Scripts live next to this file: `scripts/`.
    `osascript -e 'tell application "System Events" to get UI elements enabled'` -> `true`
    If `false`: System Settings -> Privacy & Security -> Accessibility -> enable Cursor, then **quit and restart Cursor** (`Cmd+Q`).
 2. **Node.js** (for CDP helpers and Playwright browser install).
-3. **Python 3 + Pillow** (`pip3 install Pillow`) for crop/resize.
+3. **Python 3 + Pillow** (`pip3 install Pillow`) for crop/fit.
 4. **Swift** (Xcode CLT) for window-id lookup.
 5. Unpacked extension directory (Manifest V3) with a valid `manifest.json`.
 
@@ -102,7 +102,9 @@ Task progress:
 
 1. Launch a **second** maximized window on `about:blank` behind the foreground window.
 2. Capture foreground with `screencapture -l WINDOW_ID`.
-3. **Crop** to the extension window (alpha bbox + resize) — backdrop chrome must not appear in the committed asset.
+3. **Crop** to the extension window, preserve its aspect ratio, and center it on
+   a white target canvas — never stretch it to the requested dimensions.
+   Backdrop chrome must not appear in the committed asset.
 4. Keep raw fullscreen/window captures only in `/tmp/mad-chrome-ss-*`.
 
 ## Troubleshooting

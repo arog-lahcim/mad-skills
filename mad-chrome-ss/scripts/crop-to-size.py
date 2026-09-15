@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Crop a window capture to content bbox and resize to target dimensions."""
+"""Crop a window capture and fit it on a white target canvas."""
 
 from __future__ import annotations
 
@@ -54,14 +54,28 @@ def main() -> int:
         print(f"input not found: {source}", file=sys.stderr)
         return 1
 
-    image = Image.open(source)
+    image = Image.open(source).convert("RGBA")
     bbox = content_bbox(image)
-    cropped = image.crop(bbox).convert("RGB")
-    final = cropped.resize((args.width, args.height), Image.Resampling.LANCZOS)
+    cropped = image.crop(bbox)
+
+    scale = min(args.width / cropped.width, args.height / cropped.height)
+    fitted_size = (
+        max(1, round(cropped.width * scale)),
+        max(1, round(cropped.height * scale)),
+    )
+    fitted = cropped.resize(fitted_size, Image.Resampling.LANCZOS)
+
+    final = Image.new("RGBA", (args.width, args.height), "white")
+    offset = (
+        (args.width - fitted.width) // 2,
+        (args.height - fitted.height) // 2,
+    )
+    final.alpha_composite(fitted, offset)
+    final = final.convert("RGB")
 
     destination.parent.mkdir(parents=True, exist_ok=True)
     final.save(destination, format="PNG", optimize=True)
-    print(f"{destination} {final.size}")
+    print(f"{destination} {final.size} fitted={fitted_size} scale={scale:.6f}")
     return 0
 
 

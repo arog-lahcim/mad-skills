@@ -12,6 +12,22 @@ Install / resolve:
 ./scripts/find-chrome-for-testing.sh
 ```
 
+Resolution is cache-first, so a normal run needs no network:
+
+1. `CHROME_BIN`, when set, is used as-is (and must be executable).
+2. Otherwise the script scans `PLAYWRIGHT_BROWSERS_PATH`,
+   `~/Library/Caches/ms-playwright`, `~/.cache/ms-playwright`, and `TMPDIR` for
+   `*/chromium-*/chrome-mac*/Google Chrome for Testing.app/...`, covering both
+   `chrome-mac-arm64` and Intel `chrome-mac` builds. The highest `chromium-<rev>`
+   wins, so a stale revision never shadows a newer one.
+3. Only when nothing is cached does it run `npx playwright install chromium`
+   and scan again.
+
+The lookup accepts Chrome for Testing binaries only. Playwright's plain
+`Chromium.app` would not match the default `PROCESS_NAME`, so window lookup
+would fail later; failing here instead keeps the error close to the cause. When
+no build is found, the error lists every searched root.
+
 ## Remote debugging (CDP)
 
 Launch uses `--remote-debugging-port=$DEBUG_PORT` (default `9224`). The prepare

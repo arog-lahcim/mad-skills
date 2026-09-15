@@ -18,7 +18,8 @@ Scripts live next to this file: `scripts/`.
 1. **macOS** with Accessibility enabled for the agent host (Cursor):
    `osascript -e 'tell application "System Events" to get UI elements enabled'` -> `true`
    If `false`: System Settings -> Privacy & Security -> Accessibility -> enable Cursor, then **quit and restart Cursor** (`Cmd+Q`).
-2. **Node.js** (for CDP helpers and Playwright browser install).
+2. **Node.js** (for CDP helpers, and for the Playwright install when no Chrome
+   for Testing build is cached yet).
 3. **Python 3 + Pillow** (`pip3 install Pillow`) for crop/fit.
 4. **Swift** (Xcode CLT) for window-id lookup.
 5. Unpacked extension directory (Manifest V3) with a valid `manifest.json`.
@@ -48,6 +49,7 @@ Optional:
 | `FOREGROUND_TITLE_PREFIX` | *(empty)* | Match foreground window title prefix |
 | `LOCALE_SUFFIX` | `1` | Append `?hl=en` / `?hl=en&gl=US` to http(s) URLs |
 | `KEEP_SESSION` | `false` | Keep a failed run's browser and profile for diagnostics |
+| `CHROME_BIN` | newest cached build | Chrome for Testing binary to use instead of the cache lookup |
 
 Run from the skill directory:
 
@@ -119,8 +121,9 @@ Task progress:
 
 1. **Preflight** — run the Accessibility check; install Pillow if missing.
 2. **Inputs** — `EXTENSION_DIR`, `OUTPUT_PATH`, and variant env vars.
-3. **Capture** — `./scripts/capture-active-tab.sh` (installs CfT via Playwright if
-   needed). It prints `diagnostics=` — a `/tmp` JSON with pid, profile,
+3. **Capture** — `./scripts/capture-active-tab.sh` (reuses a cached Chrome for
+   Testing build, installing one via Playwright only when none is cached). It
+   prints `diagnostics=` — a `/tmp` JSON with pid, profile,
    debug port, capture mode, screen/window bounds, tab count, menu point, and
    raw/preview paths. Read it first when a run misbehaves.
 4. **Verify** — confirm dimensions and white corners, then visually inspect:
@@ -152,6 +155,7 @@ Task progress:
 | "Relaunch the browser..." infobar in shot | Safe Storage access was denied | Same fix as the keychain prompt |
 | `window not found` | Wrong `PROCESS_NAME` / title prefix | Set `FOREGROUND_TITLE_PREFIX` |
 | Developer mode blocked | Regular Chrome managed by policy | Use Chrome for Testing (this skill) |
+| `Chrome for Testing not found` | No cached build in the searched roots | Read the listed roots, run `npx playwright install chromium`, or set `CHROME_BIN` |
 | Menu item hover in shot | Cursor over menu | Script warps cursor away before capture |
 | Multi-select collapses | Active index is outside highlighted indices | Include `ACTIVE_TAB_INDEX` in `HIGHLIGHT_TABS` |
 | Singular menu labels | Context menu opened on one tab, not the group | Verify highlighted state and plural menu labels |

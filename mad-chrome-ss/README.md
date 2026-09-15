@@ -15,7 +15,10 @@ The user asks for extension screenshots, store listing images, README visuals, o
 ## Platform
 
 **macOS only.** Requires Accessibility (for window/menu automation), Pillow, Node,
-Swift (CLT), and Playwright-managed Chrome for Testing.
+Swift (CLT), and a Chrome for Testing build. Cached Playwright builds are reused
+from `PLAYWRIGHT_BROWSERS_PATH`, `~/Library/Caches/ms-playwright`,
+`~/.cache/ms-playwright`, or `TMPDIR`; Playwright downloads one only when no
+build is cached, and `CHROME_BIN` overrides the lookup entirely.
 
 ## Output
 
@@ -83,7 +86,7 @@ rather than a silent exit.
 | Script | Role |
 |--------|------|
 | `scripts/capture-active-tab.sh` | Orchestrator (entry point) |
-| `scripts/find-chrome-for-testing.sh` | Resolve CfT binary via Playwright |
+| `scripts/find-chrome-for-testing.sh` | Resolve newest cached CfT binary; install via Playwright only if none |
 | `scripts/launch-session.sh` | Isolated profile + extension + debug port |
 | `scripts/cdp-prepare-session.mjs` | Tabs, highlight, backdrop, options page |
 | `scripts/find-window-id.swift` | CGWindowList -> window id |

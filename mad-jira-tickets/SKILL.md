@@ -187,11 +187,47 @@ PUT /rest/agile/1.0/issue/rank
 
 **Example intent:** contract → skeleton → Redis store → immediate → timestamped/cron → update/cancel → multi-dispatch → iteration depth → replay recovery.
 
+### Split / follow-up tickets
+
+Use when a ticket grew too large: **ship the finished slice on the original
+ticket**, move remaining acceptance criteria and testing to a **new Task**
+(or Story), and link the two issues.
+
+**Default sequence:**
+
+1. Create the follow-up under the same epic/parent as the original (when one
+   exists). Copy **only open** acceptance criteria and concrete remaining scope
+   into the new description (ADF via REST).
+2. Link: **Work item split** — `inwardIssue` = follow-up, `outwardIssue` =
+   original (follow-up **split from** original; original **split to**
+   follow-up). Add **Relates** when extra visibility helps.
+3. **Do not** add **Blocks** from original → follow-up when the follow-up is
+   **continuation** work that can start immediately (foundation already merged).
+   Use **Blocks** only when the dependent truly cannot start until the
+   prerequisite ticket reaches a named gate.
+4. Transition the **original** to **Done** (or the user’s chosen terminal
+   status) with a handoff comment linking the follow-up — unless the user
+   explicitly keeps the original open.
+5. Rank the follow-up **after** the original when both stay in the same backlog
+   (`rankAfterIssue` on the Agile rank API).
+6. After any `issueLink` create, `GET issuelinks` on both keys and confirm the
+   UI labels match intent (see **Issue links — Blocks** and split semantics
+   above). Delete wrong links before closing the session.
+
+Detailed progress comments for the follow-up follow
+[mad-ticket-progress](../mad-ticket-progress/SKILL.md).
+
 ### Updating existing tickets
 
 When reformatting a ticket to match this schema — ADF structure, bold user-story labels, checkboxes, inline code, section headings — **preserve all existing content**. Change formatting only; do not drop, shorten, or rewrite sections, bullets, links, instructions, or acceptance criteria unless the user explicitly asks for content changes.
 
 When [mad-ticket-progress](../mad-ticket-progress/SKILL.md) confirms a criterion, flip that `taskItem` `state` from `TODO` to `DONE` via the same REST description PUT. Keep `localId`, criterion text, and every other node. Do not treat a checkbox-state flip as a reformat.
+
+**ADF text edits:** Jira splits one logical line across many `text` nodes when
+`code` marks appear. Do **not** rely on substring replace on a single node.
+Replace the whole `paragraph`, `listItem`, or `taskItem` `content` array (or
+rebuild that subtree from a GET). After PUT, re-read and spot-check every
+section you intended to change — partial updates silently leave stale siblings.
 
 Before submitting an update, compare the new description against the current issue and confirm every fact, link, and criterion is still present.
 
@@ -428,7 +464,9 @@ Use a Bug user story instead of the problem-first opening only when it is natura
 - [ ] All code-like identifiers use inline code marks (`code` in ADF) — not plain text
 - [ ] On updates: all prior description content preserved — styling-only changes unless user requested edits or [mad-ticket-progress](../mad-ticket-progress/SKILL.md) flips a confirmed AC `taskItem` to `DONE`
 - [ ] `taskItem` content is inline `text` (no nested `paragraph`); checked items use `state: "DONE"` with the same `localId`
-- [ ] If linking dependencies: `Blocks` created with `inwardIssue`=prerequisite, `outwardIssue`=dependent; UI verified (prerequisite **blocks**, dependent **is blocked by**)
+- [ ] If linking dependencies: `Blocks` created with `inwardIssue`=prerequisite, `outwardIssue`=dependent; UI verified (prerequisite **blocks**, dependent **is blocked by**); no `Blocks` on split/continuation unless start is truly blocked
+- [ ] Split/follow-up: Work item split + handoff comment; original Done unless user keeps it open; open AC moved to follow-up
+- [ ] ADF content edits replace whole `paragraph` / `listItem` / `taskItem` nodes, not single `text` children
 - [ ] If ordering stories: create new tickets in execution order when possible; otherwise Rank via `PUT /rest/agile/1.0/issue/rank` (backward `rankBeforeIssue` chain) and verify with `ORDER BY Rank ASC`
 - [ ] No temporary issue was created to validate ADF; batch keys match intent and the affected parent/sprint has no unexpected test issues
 - [ ] Empty `2xx` / `204` responses were accepted without JSON parsing and verified with a read

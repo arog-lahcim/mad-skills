@@ -39,14 +39,47 @@ Stay generic — no org, project, or real ticket hard-coding.
 1. Resolve ticket + host.
 2. Read the issue (description + acceptance-criteria checkboxes), recent
    progress comments, and the current plan/slices.
-3. Check confirmed acceptance criteria on the **description** (below).
-4. If this is a progress/handoff request: post a **new** comment
+3. **Verify external delivery state** cited in the comment (below) in the
+   same session before writing slice bars, `### Known gaps`, or `### Next`.
+4. Check confirmed acceptance criteria on the **description** (below).
+5. If this is a progress/handoff request: post a **new** comment
    (history). Name each criterion you checked under `### What landed`.
    Edit only the comment you just posted if re-read shows broken
    formatting. If the user asked only to mark AC, skip the comment.
-5. Submit via the host adapter below.
-6. Re-read the description checkboxes and, if posted, the comment. If
+   When the user asks to **update an existing** progress comment instead,
+   `PUT` that comment via REST ADF; still re-read after write.
+6. Submit via the host adapter below.
+7. Re-read the description checkboxes and, if posted, the comment. If
    bars, headings, links, or checkbox state broke, fix via the adapter.
+
+### Verify MR and pipeline claims (GitLab / GitHub)
+
+Before stating that a merge request is open, unmerged, blocked, or merged —
+including in slice-bar parentheticals — read its current state:
+
+- GitLab: `glab api "projects/{encoded_path}/merge_requests/{iid}"` →
+  `state`, `merged_at`, `merge_commit_sha` (or `glab mr view` when local).
+- GitHub: `gh pr view` / `gh api repos/{owner}/{repo}/pulls/{number}`.
+
+If the comment also claims a **release or deploy gate** (semantic-release tag,
+pipeline success, environment deploy), verify that separately — **merged ≠
+released/deployed**. Wording must match what you verified.
+
+When the user corrects stale MR/pipeline text already on the ticket, fix the
+description and/or the affected comment via REST, then post a short **Correction**
+comment naming what changed and the verified state. Do not leave contradictory
+progress comments unedited when the user pointed at a specific comment URL.
+
+### Multi-agent / composer session evidence
+
+When the user lists **composer or conversation UUIDs** instead of a single chat:
+
+1. Use `SearchConversations` (one or two keywords per query) for titles and
+   snippets — not full transcripts by default.
+2. Local transcripts may be missing for **remote SSH / other-machine** sessions;
+   do not claim you read a transcript file unless it exists on the current host.
+3. Summarize only **observed** outcomes (MR URLs, commands, user-reported
+   results). Label inference vs verified external reads.
 
 English unless the user asks otherwise. Links:
 [mad-visible-links](../mad-visible-links/SKILL.md).
@@ -152,10 +185,12 @@ Re-read notes; edit only what you just posted.
 
 - [ ] User asked for a ticket comment or to mark AC (not chat-only status)
 - [ ] Host resolved; other tracker asked, not guessed
-- [ ] New dated comment unless AC-only; edit only to repair the one just posted
+- [ ] Every cited MR/PR/pipeline state verified this session (`glab` / `gh`) before write
+- [ ] New dated comment unless AC-only or user named an existing comment to update
 - [ ] Heading `## Progress update (YYYY-MM-DD)` then fenced/codeBlock bars
 - [ ] Status labels from the allowed set only
 - [ ] Confirmed AC items checked on the description; uncertain left
 - [ ] What landed names each criterion that was checked
 - [ ] Visible title + URL links
 - [ ] Re-read; bars/headings/links/checkbox state intact
+- [ ] User corrections applied to description/comments + short Correction note if needed

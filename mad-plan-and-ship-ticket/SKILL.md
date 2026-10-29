@@ -2,9 +2,10 @@
 name: mad-plan-and-ship-ticket
 description: >-
   Orchestrates ticket delivery from plan through unpublished draft MR review
-  and stops for human merge. Use when the user asks to ship work end-to-end,
-  /mad-plan-and-ship-ticket, or plan -> Jira -> branch -> implement ->
-  commit/MR -> draft review.
+  and stops for human merge. Also records work that is already shipped,
+  without a new branch. Use when the user asks to ship work end-to-end,
+  /mad-plan-and-ship-ticket, plan -> Jira -> branch -> implement ->
+  commit/MR -> draft review, or to file a ticket for work already done.
 disable-model-invocation: true
 ---
 
@@ -34,6 +35,16 @@ Plan and ship ticket:
 - [ ] 6. Draft review (mad-draft-code-review)
 - [ ] 7. Stop for human
 ```
+
+## Already shipped
+
+When the user asks to record work that is already done, skip steps 3–6 and do not open a new implementation branch.
+
+1. Hand the ticket entirely to [mad-jira-tickets](../mad-jira-tickets/SKILL.md).
+2. The description covers only shipped outcomes. Leave out designs the user replaced or did not ask to implement.
+3. Transition to the status the user names. If they say review and the board's review status has another name, use that name and say so in the reply. Do not force **In Progress**. The glue gate for this mode is that status, not **In Progress**.
+4. If one request is still open, record it as the only unchecked acceptance criterion and link it. Do not draft-review requests that are already merged.
+5. Stop for human. Do not merge, and do not move the ticket to Done.
 
 ### 1. Plan
 

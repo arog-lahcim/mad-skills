@@ -15,8 +15,10 @@ description: >-
   it references. After posting, finish the full chat summary and steering
   notes; do not wait on a next-step question - the user reviews drafts in
   the UI. Never recreate drafts the user deleted unless they explicitly
-  ask. On re-review, resolve fixed threads (award white_check_mark only when
-  the author replied); do not leave acknowledgment replies. When a review
+  ask. On re-review, resolve fixed threads this reviewer opened (award
+  white_check_mark only when the author replied), and resolve GitLab Duo
+  threads in the same turn when a published reply closes the finding; do
+  not leave acknowledgment replies. When a review
   leaves no required-change drafts and the MR looks ready to merge, award
   white_check_mark plus authorship reactions on the MR itself: robot for
   agent work, robot and technologist for shared work, or technologist for
@@ -559,6 +561,17 @@ PUT   /projects/:id/merge_requests/:iid/discussions/:discussion_id
 
 **If a residual nit is distinct from the original ask**, keep it as a new draft on the relevant line; still resolve the original thread when that original ask is done **and** no follow-up answer is pending (and award :white_check_mark: on the author’s reply only if one exists).
 
+### GitLab Duo threads
+
+The resolve rules above apply to threads **this reviewer opened**. Threads opened by GitLab Duo are different: Duo does not close its own discussions, so a closing reply from us should resolve them.
+
+- If this pass **publishes** a reply that closes the finding (fix landed, or a complete won't-fix): post it **without** `@GitLabDuo` and set `resolved=true` in the **same turn**.
+- Mention `@GitLabDuo` only when asking Duo to continue (follow-up question, re-check, another pass). Leave that thread unresolved.
+- Do not mention `@GitLabDuo` on a closing reply.
+- Do not resolve while the Duo reply is still an unpublished draft — publish first, then resolve in that same turn.
+
+Human reviewers, Bugbot, and other bots stay under the usual “author closes their own thread” rule.
+
 ## Withdrawing a published comment
 
 When a comment that is already published turns out not to belong in the review — wrong owner, already decided, speculation that did not hold — withdraw it rather than delete it. Deleting breaks thread continuity and leaves any replies answering nothing.
@@ -690,5 +703,6 @@ Wdyt?
 - [ ] Apply-feedback pass: only update drafts that still exist; never recreate user-deleted drafts unless explicitly asked; strip instructional bullets from the final draft text
 - [ ] No `Finding`-weight drafts + merge-ready → ready signal on the MR itself: :white_check_mark: plus :robot: for agent-only, :robot: + :technologist: for shared, or :technologist: for human-only; same authorship rules as comment signatures; clear stale current-user :speech_balloon: / :white_check_mark: / :robot: / :technologist: awards first; never treat reactions as approval
 - [ ] Re-review left required-change drafts after a prior ready signal → delete the current user's MR-level :white_check_mark: / :robot: / :technologist: ready reactions, award `speech_balloon` / :speech_balloon: instead; do not leave ready and needs-work reactions together
-- [ ] Re-review: properly resolved threads are resolved with no acknowledgment reply; :white_check_mark: (`white_check_mark`) only on an author/participant reply — not when the thread is still only the reviewer’s comment(s)
+- [ ] Re-review: properly resolved threads this reviewer opened are resolved with no acknowledgment reply; :white_check_mark: (`white_check_mark`) only on an author/participant reply — not when the thread is still only the reviewer’s comment(s)
+- [ ] GitLab Duo threads: published closing reply (no `@GitLabDuo`) + resolve in the same turn; mention `@GitLabDuo` only when asking Duo to continue, and then leave the thread open
 - [ ] Never resolve a discussion that still has a pending draft reply or an unanswered follow-up being answered; unresolve first if an early resolve would hide the published answer

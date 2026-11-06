@@ -44,10 +44,14 @@ Stay generic — no org, project, or real ticket hard-coding.
 4. Check confirmed acceptance criteria on the **description** (below).
 5. If this is a progress/handoff request: post a **new** comment
    (history). Name each criterion you checked under `### What landed`.
-   Edit only the comment you just posted if re-read shows broken
-   formatting. If the user asked only to mark AC, skip the comment.
-   When the user asks to **update an existing** progress comment instead,
-   `PUT` that comment via REST ADF; still re-read after write.
+   When [Execution plan block](#execution-plan-block) says this comment
+   carries the plan, end with that generalized plan block and its diagram images.
+   Edit only
+   the comment you just posted if re-read shows broken formatting or a
+   plan block that does not match its source. If the user asked only to
+   mark AC, skip the comment. When the user asks to **update an existing**
+   progress comment instead, `PUT` that comment via REST ADF; still
+   re-read after write.
 6. Submit via the host adapter below.
 7. Re-read the description checkboxes and, if posted, the comment. If
    bars, headings, links, or checkbox state broke, fix via the adapter.
@@ -105,7 +109,7 @@ an unfenced list, not `#` / `.` substitutes.
 
 ## Rest of the comment
 
-Keep it short. Omit an empty section.
+What landed, Releases / MRs, Next, and Known gaps stay short. Omit an empty section. The execution plan block below is separate and is not shortened.
 
 ```
 ### What landed
@@ -119,7 +123,38 @@ Keep it short. Omit an empty section.
 
 ### Known gaps
 - only work left outside this ticket
+
+## Execution plan
+<one image per diagram, then one fenced code block: the plan source, with local identity generalized>
 ```
+
+## Execution plan block
+
+Include the full plan in a progress comment only in two cases:
+
+- This is the first progress comment for the current effort. No earlier progress comment on the ticket already holds this plan.
+- The plan changed diametrically since the comment that holds it. A diametrical change is a change to what will be built: response shape, data source, which call returns a value, hot versus cold behavior, files or repositories in scope, or what a diagram means. A reworded sentence, an extra example of the same contract, slice status, and merge-request state are not a diametrical change.
+
+Every other progress comment names the comment that holds the plan and does not paste the plan or its images again. Do not wait for the user to say "only at the start" or "only if the plan changed a lot".
+
+When this comment does include the plan, it ends with `## Execution plan`. First, one image per diagram. Then one code block that is the plan another agent would implement from, after the generalization below. Do not wait for the user to say "include the diagram", "omit nothing", "paste the markdown", or "hide my username".
+
+The plan source is the plan file when a file exists, including front matter. Otherwise it is the settled markdown. Generalize that source, then store the result. The code block includes diagrams, Mermaid, examples, SQL, and front matter. Do not summarize it, drop a section, or rewrite it into headings and bullets. Jira stores it as one ADF `codeBlock` with language `markdown`. GitHub and GitLab store it as one fenced `markdown` block. A summary plus a link to a local plan file is not this block.
+
+Generalize machine-local identity in the whole comment, and in the plan block before it is stored:
+
+- A home path `/Users/<name>/`, `/home/<name>/`, or `C:\Users\<name>\` becomes `~/`. The rest of the path stays.
+- The account name of this machine does not appear. Outside a path, replace it with `<user>`. A hostname of this machine becomes `<host>`.
+- A token, password, API key, connection string, or value copied from `.env` or a keychain becomes `<redacted>`.
+- Repository-relative paths, public URLs, ticket keys, and names that belong to the product stay as written.
+
+The same rules apply to diagram captions and to What landed, Next, and Known gaps. Compare a later plan with the generalized text already on the ticket. A rewrite that only hides a username is not a diametrical change.
+
+Each fenced `mermaid` diagram in the generalized source is also a PNG above the code block, with a caption that is the heading of the section that contains the diagram, otherwise `Diagram 1`, `Diagram 2`, and so on. The image is the diagram, not a screenshot of a path or a terminal. Jira: upload the PNG to the issue and place it in the comment with a media node. GitHub and GitLab: upload and embed the image. One image per diagram, only in a comment that also contains the plan block. If rendering or upload fails, post the comment with the source block and name the missing image under `### Known gaps`.
+
+After write, compare the stored block to the generalized source. If any part of that text is missing, edit the comment. Do not put a home path or account name back because the ticket text differs from the local file.
+
+Skip the block when there is no plan, the user said to omit it, or this request is acceptance-criteria only (no comment).
 
 ## Acceptance criteria checkboxes
 
@@ -194,5 +229,7 @@ Re-read notes; edit only what you just posted.
 - [ ] Confirmed AC items checked on the description; uncertain left
 - [ ] What landed names each criterion that was checked
 - [ ] Visible title + URL links
+- [ ] Full plan block only on the first progress comment for this effort, or after a diametrical plan change; otherwise the comment names the comment that holds the plan
+- [ ] That plan comment has one image per Mermaid diagram above the generalized source block; re-read matches that text and contains no home path or account name
 - [ ] Re-read; bars/headings/links/checkbox state intact
 - [ ] User corrections applied to description/comments + short Correction note if needed

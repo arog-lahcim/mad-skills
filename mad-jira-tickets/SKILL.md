@@ -198,9 +198,10 @@ ticket**, move remaining acceptance criteria and testing to a **new Task**
 1. Create the follow-up under the same epic/parent as the original (when one
    exists). Copy **only open** acceptance criteria and concrete remaining scope
    into the new description (ADF via REST).
-2. Link: **Work item split** — `inwardIssue` = follow-up, `outwardIssue` =
-   original (follow-up **split from** original; original **split to**
-   follow-up). Add **Relates** when extra visibility helps.
+2. Link: **Work item split** — `outwardIssue` = follow-up, `inwardIssue` =
+   original. On this site `outwardIssue` is the target of the outward label,
+   so the original shows **split to** the follow-up and the follow-up shows
+   **split from** the original. Add **Relates** when extra visibility helps.
 3. **Do not** add **Blocks** from original → follow-up when the follow-up is
    **continuation** work that can start immediately (foundation already merged).
    Use **Blocks** only when the dependent truly cannot start until the
@@ -465,7 +466,7 @@ Use a Bug user story instead of the problem-first opening only when it is natura
 - [ ] On updates: all prior description content preserved — styling-only changes unless user requested edits or [mad-ticket-progress](../mad-ticket-progress/SKILL.md) flips a confirmed AC `taskItem` to `DONE`
 - [ ] `taskItem` content is inline `text` (no nested `paragraph`); checked items use `state: "DONE"` with the same `localId`
 - [ ] If linking dependencies: `Blocks` created with `inwardIssue`=prerequisite, `outwardIssue`=dependent; UI verified (prerequisite **blocks**, dependent **is blocked by**); no `Blocks` on split/continuation unless start is truly blocked
-- [ ] Split/follow-up: Work item split + handoff comment; original Done unless user keeps it open; open AC moved to follow-up
+- [ ] Split/follow-up: Work item split with `outwardIssue`=follow-up and `inwardIssue`=original; GET confirms original **split to** and follow-up **split from**; handoff comment; original Done unless user keeps it open; open AC moved to follow-up
 - [ ] ADF content edits replace whole `paragraph` / `listItem` / `taskItem` nodes, not single `text` children
 - [ ] If ordering stories: create new tickets in execution order when possible; otherwise Rank via `PUT /rest/agile/1.0/issue/rank` (backward `rankBeforeIssue` chain) and verify with `ORDER BY Rank ASC`
 - [ ] No temporary issue was created to validate ADF; batch keys match intent and the affected parent/sprint has no unexpected test issues

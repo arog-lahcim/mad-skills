@@ -137,7 +137,9 @@ second comment). Best effort — skip if there is no AC list.
 
 **Leave unchecked when** the item is only planned, coded locally, or
 discussed; only partly met; deploy/verify is still missing; or two
-items could match.
+items could match. A narrowed plan does not satisfy an older criterion.
+Check it only when the shipped outcome meets that criterion's own words,
+not the sentence the plan used to replace it.
 
 Do **not** rewrite criterion text. Do **not** uncheck items unless the
 user says they were undone. If the description write fails, still post

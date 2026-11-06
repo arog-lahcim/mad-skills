@@ -44,8 +44,9 @@ Stay generic — no org, project, or real ticket hard-coding.
 4. Check confirmed acceptance criteria on the **description** (below).
 5. If this is a progress/handoff request: post a **new** comment
    (history). Name each criterion you checked under `### What landed`.
-   When an execution plan exists, end the comment with the verbatim plan
-   block from [Execution plan block](#execution-plan-block). Edit only
+   When [Execution plan block](#execution-plan-block) says this comment
+   carries the plan, end with that verbatim block and its diagram images.
+   Edit only
    the comment you just posted if re-read shows broken formatting or a
    plan block that does not match its source. If the user asked only to
    mark AC, skip the comment. When the user asks to **update an existing**
@@ -124,20 +125,27 @@ What landed, Releases / MRs, Next, and Known gaps stay short. Omit an empty sect
 - only work left outside this ticket
 
 ## Execution plan
-<one fenced code block: the plan source, verbatim>
+<one image per diagram, then one fenced code block: the plan source, verbatim>
 ```
 
 ## Execution plan block
 
-A progress comment ends with `## Execution plan` and one code block when an execution plan exists. The block is the plan another agent would implement from. Do not wait for the user to say "include the diagram", "omit nothing", or "paste the markdown".
+Include the full plan in a progress comment only in two cases:
 
-The plan exists when this conversation has a plan file, or the conversation settled a written plan. Use the plan file bytes when a file exists, including front matter. Otherwise use the settled markdown.
+- This is the first progress comment for the current effort. No earlier progress comment on the ticket already holds this plan.
+- The plan changed diametrically since the comment that holds it. A diametrical change is a change to what will be built: response shape, data source, which call returns a value, hot versus cold behavior, files or repositories in scope, or what a diagram means. A reworded sentence, an extra example of the same contract, slice status, and merge-request state are not a diametrical change.
 
-The code block is that source. It includes diagrams, Mermaid, examples, SQL, and front matter. Do not summarize it, drop a section, or rewrite it into headings and bullets. Jira stores it as one ADF `codeBlock` with language `markdown`. GitHub and GitLab store it as one fenced `markdown` block. A summary plus a link to a local plan file is not this block.
+Every other progress comment names the comment that holds the plan and does not paste the plan or its images again. Do not wait for the user to say "only at the start" or "only if the plan changed a lot".
+
+When this comment does include the plan, it ends with `## Execution plan`. First, one image per diagram. Then one code block that is the plan source another agent would implement from. Do not wait for the user to say "include the diagram", "omit nothing", or "paste the markdown".
+
+The plan source is the plan file bytes when a file exists, including front matter. Otherwise it is the settled markdown. The code block is that source. It includes diagrams, Mermaid, examples, SQL, and front matter. Do not summarize it, drop a section, or rewrite it into headings and bullets. Jira stores it as one ADF `codeBlock` with language `markdown`. GitHub and GitLab store it as one fenced `markdown` block. A summary plus a link to a local plan file is not this block.
+
+Each fenced `mermaid` diagram in that source is also a PNG above the code block, with a caption that is the heading of the section that contains the diagram, otherwise `Diagram 1`, `Diagram 2`, and so on. Jira: upload the PNG to the issue and place it in the comment with a media node. GitHub and GitLab: upload and embed the image. One image per diagram, only in a comment that also contains the plan block. If rendering or upload fails, post the comment with the source block and name the missing image under `### Known gaps`.
 
 After write, compare the stored block to the source. If any part differs, edit the comment.
 
-Skip the block when there is no plan, the user said to omit it, or this request is acceptance-criteria only (no comment). When an earlier comment on this ticket already contains this same plan text, name that comment under `### Next` and do not paste the plan again. When the plan text changed, paste the new full source.
+Skip the block when there is no plan, the user said to omit it, or this request is acceptance-criteria only (no comment).
 
 ## Acceptance criteria checkboxes
 
@@ -212,6 +220,7 @@ Re-read notes; edit only what you just posted.
 - [ ] Confirmed AC items checked on the description; uncertain left
 - [ ] What landed names each criterion that was checked
 - [ ] Visible title + URL links
-- [ ] Execution plan block is the verbatim source when a plan exists and that text is not already on the ticket; re-read matches the source
+- [ ] Full plan block only on the first progress comment for this effort, or after a diametrical plan change; otherwise the comment names the comment that holds the plan
+- [ ] That plan comment has one image per Mermaid diagram above a verbatim source block; re-read matches the source
 - [ ] Re-read; bars/headings/links/checkbox state intact
 - [ ] User corrections applied to description/comments + short Correction note if needed

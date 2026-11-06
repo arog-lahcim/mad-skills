@@ -44,10 +44,13 @@ Stay generic — no org, project, or real ticket hard-coding.
 4. Check confirmed acceptance criteria on the **description** (below).
 5. If this is a progress/handoff request: post a **new** comment
    (history). Name each criterion you checked under `### What landed`.
-   Edit only the comment you just posted if re-read shows broken
-   formatting. If the user asked only to mark AC, skip the comment.
-   When the user asks to **update an existing** progress comment instead,
-   `PUT` that comment via REST ADF; still re-read after write.
+   When an execution plan exists, end the comment with the verbatim plan
+   block from [Execution plan block](#execution-plan-block). Edit only
+   the comment you just posted if re-read shows broken formatting or a
+   plan block that does not match its source. If the user asked only to
+   mark AC, skip the comment. When the user asks to **update an existing**
+   progress comment instead, `PUT` that comment via REST ADF; still
+   re-read after write.
 6. Submit via the host adapter below.
 7. Re-read the description checkboxes and, if posted, the comment. If
    bars, headings, links, or checkbox state broke, fix via the adapter.
@@ -105,7 +108,7 @@ an unfenced list, not `#` / `.` substitutes.
 
 ## Rest of the comment
 
-Keep it short. Omit an empty section.
+What landed, Releases / MRs, Next, and Known gaps stay short. Omit an empty section. The execution plan block below is separate and is not shortened.
 
 ```
 ### What landed
@@ -119,7 +122,22 @@ Keep it short. Omit an empty section.
 
 ### Known gaps
 - only work left outside this ticket
+
+## Execution plan
+<one fenced code block: the plan source, verbatim>
 ```
+
+## Execution plan block
+
+A progress comment ends with `## Execution plan` and one code block when an execution plan exists. The block is the plan another agent would implement from. Do not wait for the user to say "include the diagram", "omit nothing", or "paste the markdown".
+
+The plan exists when this conversation has a plan file, or the conversation settled a written plan. Use the plan file bytes when a file exists, including front matter. Otherwise use the settled markdown.
+
+The code block is that source. It includes diagrams, Mermaid, examples, SQL, and front matter. Do not summarize it, drop a section, or rewrite it into headings and bullets. Jira stores it as one ADF `codeBlock` with language `markdown`. GitHub and GitLab store it as one fenced `markdown` block. A summary plus a link to a local plan file is not this block.
+
+After write, compare the stored block to the source. If any part differs, edit the comment.
+
+Skip the block when there is no plan, the user said to omit it, or this request is acceptance-criteria only (no comment). When an earlier comment on this ticket already contains this same plan text, name that comment under `### Next` and do not paste the plan again. When the plan text changed, paste the new full source.
 
 ## Acceptance criteria checkboxes
 
@@ -194,5 +212,6 @@ Re-read notes; edit only what you just posted.
 - [ ] Confirmed AC items checked on the description; uncertain left
 - [ ] What landed names each criterion that was checked
 - [ ] Visible title + URL links
+- [ ] Execution plan block is the verbatim source when a plan exists and that text is not already on the ticket; re-read matches the source
 - [ ] Re-read; bars/headings/links/checkbox state intact
 - [ ] User corrections applied to description/comments + short Correction note if needed

@@ -122,6 +122,15 @@ Split because producer code and docs are independent review units.
 
 If a pre-commit hook fails, fix the issue and create a **new** commit — do not amend unless the user asked to amend and the amend safety rules below are met.
 
+### Auxiliary refs (backup tags, bookmark branches)
+
+A ref created to protect history before a rebase, reset, or squash is not a commit, so step 6 does not cover it. When you create one:
+
+1. Create the ref in its **own** command. Do not chain it with the rewrite it protects (`git tag … && git rebase …`) and do not pipe its output through `tail` — a failure message survives only if you read it.
+2. Confirm it in a **separate** call with `git tag -l <name>` or `git rev-parse <name>`, and read the exit code. Creating and verifying in one chain reports the state *before* the ref exists.
+3. A repository with `tag.gpgSign=true` creates annotated tags: `git tag <name> <sha>` then needs `-m <message>`, otherwise it blocks on an editor (`Terminal is dumb, but EDITOR unset`). The same applies to `git tag -f`.
+4. Never report "the backup is in tag X" unless step 2 returned the SHA in this turn.
+
 ### Amend (rare)
 
 Use `--amend` only when all are true:

@@ -94,6 +94,7 @@ EOF
 
 5. Repeat step 4 for each remaining atomic unit.
 6. Run `git status` after the last commit and confirm success. Verify each new commit’s full message has no agent attribution in subject, body, or trailers (`git log -N --format=%B` for the N commits you just created).
+6a. If you built or bundled anything for the user to run, `git status` must be empty **before** you report that build as ready. A fresh binary proves the build, not the commit: check that every file you edited appears in `git log` for the branch, not only in the working tree.
 7. **Always print a summary of the created commits** as an ordered list. For each commit, put the short hash and the full subject each in their own monospace (inline code) spans. Use `git log -N --oneline` for the N commits you just created (oldest first or newest first is fine, but keep the list consistent). When splitting into multiple commits, briefly note why after the list. Print that list in the same turn as the last commit, before any push or PR step — once a push follows the command, the summary reads as optional and gets dropped.
 
 Summary format (required):

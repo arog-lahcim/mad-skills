@@ -12,6 +12,7 @@ Workflows stay generic; install paths and MCP config differ by host.
 - [`mad-chrome-ss`](mad-chrome-ss/SKILL.md) - capture real Chrome extension UI screenshots on macOS
 - [`mad-draft-code-review`](mad-draft-code-review/SKILL.md) - prepare unpublished review comments
 - [`mad-git-commit`](mad-git-commit/SKILL.md) - create conventional, atomic commits
+- [`mad-guided-review`](mad-guided-review/SKILL.md) - read one named source, one fragment at a time, only when asked by name
 - [`mad-install-mcp-servers`](mad-install-mcp-servers/SKILL.md) - install supported MCP connections
 - [`mad-jira-tickets`](mad-jira-tickets/SKILL.md) - create and update Jira work items
 - [`mad-plan-and-ship-ticket`](mad-plan-and-ship-ticket/SKILL.md) - orchestrate ticket delivery through draft review

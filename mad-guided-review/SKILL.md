@@ -30,8 +30,6 @@ Shape the reply like this:
 
 Add a warning only when that fragment shows a concrete problem.
 
-`dalej` means the same as `Next`.
-
 ## Leave the source unchanged
 
 Do not edit the source: not its body, changelog, or an existing diagram or table. The source stays unchanged until a separate, accepted plan says otherwise.
@@ -73,9 +71,6 @@ A click arrives as a normal user message. Obey that message: `Next` advances, `S
 
 ### When the tool is missing
 
-On the first step only, if `show_buttons` is not connected or the call fails, add one plain sentence and then continue the text walkthrough.
+On the first step only, if `show_buttons` is not connected or the call fails, add one plain sentence and then continue the text walkthrough. The sentence is `The button server is not working. Write Next to continue.` Say it in the language of the conversation.
 
-- Polish reply: `Serwer przycisków nie działa. Napisz dalej.`
-- English reply: `The button server is not working. Write Next to continue.`
-
-Later steps do not mention the button server again unless the user asks. Typing `Next` or `dalej` still advances.
+Later steps do not mention the button server again unless the user asks. Typing `Next` still advances.

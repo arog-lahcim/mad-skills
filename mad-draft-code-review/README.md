@@ -21,6 +21,11 @@ The only `AskQuestion` in this path is the pre-post budget gate. After drafts
 exist, the agent finishes the written reply and stops; the user reviews in the
 MR/PR UI.
 
+Anything the review considered and then dropped is also one unpublished
+general comment: a bullet list, lead line "Not blocking. Considered these and
+left them out of the inline notes:". The chat summary repeats that list; it
+does not replace the comment. Skip the comment only when nothing was dropped.
+
 ```mermaid
 flowchart TD
   startNode[User asks for draft review]

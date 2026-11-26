@@ -44,7 +44,7 @@ Default comment language: **English** (unless the user requests otherwise).
 4. Check out the branch (shallow clone is enough) and read the changed files whole, plus the code paths they contract with — writers of a field a resolver reads, callers of a changed signature. Diff-only review misses mismatches that live in unchanged code.
 5. Review for correctness, edge cases, API contracts, tests, and unmet acceptance criteria.
 6. **Cut before posting.** Run every candidate finding through [Restraint](#restraint) — ownership, confidence, budget — and drop the ones that do not survive. This step is not optional and happens *before* any draft is created.
-7. Create **draft** inline notes on **diff lines only** (see [Anchor on diff lines](#anchor-on-diff-lines)) plus an optional general overview note.
+7. Create **draft** inline notes on **diff lines only** (see [Anchor on diff lines](#anchor-on-diff-lines)). When this pass dropped anything, also post the [cut-list overview](#cut-list-overview) — a general draft, not only a chat summary.
 8. If this review left **no required-change drafts** and the MR looks ready to merge, follow [Ready-to-merge signal](#ready-to-merge-signal). If this is a **re-review** that left new drafts for required changes, follow [Needs-work signal](#needs-work-signal) instead.
 9. Show the user a **short summary** of what was left as draft (or that none were needed, and which ready / needs-work reactions were set on the MR), plus the [cut list](#tell-the-user-what-was-cut). Keep drafts unpublished.
 10. After that summary, say briefly how to steer the drafts, then **stop** — do not ask what to do next. See [After posting drafts](#after-posting-drafts).
@@ -88,7 +88,7 @@ PUT/DELETE  /projects/:id/merge_requests/:iid/draft_notes/:draft_note_id
 
 ### GitHub
 
-If the review target is GitHub, use `gh` pending-review APIs equivalently: create a pending review and comments; do not submit until asked. Same rule: only comment on lines in the PR diff ([Anchor on diff lines](#anchor-on-diff-lines)).
+If the review target is GitHub, use `gh` pending-review APIs equivalently: create a pending review and comments; do not submit until asked. Same rule: only comment on lines in the PR diff ([Anchor on diff lines](#anchor-on-diff-lines)). The [cut-list overview](#cut-list-overview) is the pending review body, not an inline comment.
 
 ## After posting drafts
 
@@ -232,7 +232,7 @@ Ownership does not decide **whether** to raise something — it decides **how ha
 ### Confidence bar
 
 - What you can verify in the diff can be stated as a finding. What you cannot, ask about — the author usually has the context you are missing, and asking gets it into the thread faster than asserting.
-- Hedged endings — "worth being deliberate about", "worth coordinating" — mean the register is wrong, not that the topic is worthless. Rewrite as a plain question, or move it to the chat summary.
+- Hedged endings — "worth being deliberate about", "worth coordinating" — mean the register is wrong, not that the topic is worthless. Rewrite as a plain question, or drop it and record it in the [cut-list overview](#cut-list-overview) and the chat summary. Chat alone does not record a drop.
 - Downstream consumers, rollouts and other teams' plans are things the author knows better. If it seems worth raising, raise it as one question and accept a one-word answer.
 
 ### Budget
@@ -252,9 +252,9 @@ Starting scale — a default to tune with the user, not a law:
 
 Three is the floor, not the target: small MRs do collect a few genuine fixes, and a pure move can still hold a couple worth raising. Zero stays a valid outcome.
 
-- The table caps **findings**. One-line `ask` / `heads-up` notes are cheaper, so up to **two** of them may sit on top of the cap — past that the pile-up becomes the message again.
+- The table caps **findings**. One-line `ask` / `heads-up` notes are cheaper, so up to **two** of them may sit on top of the cap — past that the pile-up becomes the message again. The [cut-list overview](#cut-list-overview) is neither a finding nor one of those two.
 - At most **two** threads on any single file, of any register, unless they are siblings of one issue (below). Keep the strongest one.
-- More survivors than the cap means the ranking was not done. Rank by consequence, keep the top ones as findings, downgrade or drop the rest, and tell the user in chat.
+- More survivors than the cap means the ranking was not done. Rank by consequence, keep the top ones as findings, downgrade or drop the rest, and record every drop in the [cut-list overview](#cut-list-overview) as well as the chat summary.
 
 ### One issue, several sites
 
@@ -273,13 +273,16 @@ The same mistake repeated across files is **one** finding against the budget, ho
 
 The chat summary lists what was drafted, what was **downgraded** to a one-line question, and what was dropped — one line each, with the reason (owned by custom-resource-webhook MR 5, already decided, could not verify). Raising a comment back up is easy for the user; discovering an overweight one after publication is not.
 
+Dropped items are not chat-only. The same dropped bullets are the [cut-list overview](#cut-list-overview) on the MR/PR. A chat summary without that draft is an unfinished review. Downgraded items stay inline; do not copy them into the overview.
+
 ## What to comment on
 
 - Concrete technical findings with enough context to act on.
 - Open design choices and real edge cases.
 - Acceptance criteria the diff does not meet, and contracts the cited spec does not actually state.
 - Relationships between findings (see below).
-- Process notes that are not duplicated inline — only in the overview (and only when they affect this change’s correctness or reviewability beyond what the UI already shows).
+- The dropped cut list — always the [cut-list overview](#cut-list-overview), even though it is a process note.
+- Other process notes that are not duplicated inline — only in their own general note, and only when they affect this change’s correctness or reviewability beyond what the UI already shows. Do not fold them into the cut-list overview.
 
 ### Do not comment on
 
@@ -299,7 +302,7 @@ These are about the **form**: none of them earns a demand on the author. Several
 
 ## TLDR for long comments
 
-A long comment buries its own ask. When a draft runs past roughly **100 words** or **four paragraphs**, open it with a one-line summary, then a horizontal rule, then the full reasoning. Applies to inline notes and the overview alike.
+A long comment buries its own ask. When a draft runs past roughly **100 words** or **four paragraphs**, open it with a one-line summary, then a horizontal rule, then the full reasoning. Applies to inline notes and to a general note that makes an ask. The [cut-list overview](#cut-list-overview) never gets a TLDR: it is a heads-up list, and links do not turn it into a finding.
 
 ```text
 **TLDR:** <one sentence: the finding and the ask>
@@ -324,12 +327,40 @@ A long comment buries its own ask. When a draft runs past roughly **100 words** 
 
 ## Overview (general) note
 
-- No title or heading — it is already a review of this MR/PR. A `**TLDR:**` line is a summary, not a title, and stays allowed when the note is long enough to need one.
+- No title or heading — it is already a review of this MR/PR. A `**TLDR:**` line is a summary, not a title, and stays allowed when the note is long enough to need one. The cut-list overview below never takes one.
 - No praise or criticism of the work.
-- Do **not** restate topics covered by inline comments.
+- Do **not** restate topics covered by inline comments. Drafted and downgraded items already have threads; they do not appear here.
 - Keep only items that have no inline home.
 - Do **not** use the overview to request a rebase or to note that the branch is behind the target (see [Do not comment on](#do-not-comment-on)).
-- Omit the overview entirely if there is nothing left to say.
+- A finding with no diff line is its own general draft. Do not fold it into the cut-list overview.
+
+### Cut-list overview
+
+When this pass dropped one or more candidates, post **one** general draft with that list. Chat is not a substitute. Omit the note only when this pass dropped nothing.
+
+- GitLab: `POST` a draft note with `{ "note" }` and no line position.
+- GitHub: the pending review body, not an inline comment.
+- If an unpublished cut-list draft from this reviewer already exists, `PUT` the current list into it. Do not open a second one. A general note has no line position; send `note` only.
+- Apply-feedback: if the user deleted it, leave it deleted. If they added bullets under it, rewrite that note and drop the instructional bullets.
+- Re-review: post a new one when this pass has its own drops and no unpublished cut-list draft remains.
+
+Shape — no heading, one bullet per dropped candidate:
+
+```text
+Not blocking. Considered these and left them out of the inline notes:
+
+- <what was considered> — <why it was left out>. <Title https://full-url when a thread, ticket, doc section, or proof of concept exists>
+- <next drop, same shape>
+
+:robot: · heads-up · :dart: verified (<what was opened>)
+```
+
+- One bullet, one drop. Say what was considered, then why it was left out (already decided, owned elsewhere, documented limit, could not verify). Same reasons as the chat cut list.
+- Add a visible link when the reason has a URL. Skip the link when there is nothing to open.
+- Register is `heads-up`. The lead sentence is the "not blocking". No closer. No `**TLDR:**`, even when the links push the note past 100 words.
+- First write signs `:robot:`. Apply-feedback that follows the user's bullets uses `:robot:+:technologist:` or `:technologist:` per the signature table.
+- Evidence is the weakest bullet: `:dart: verified` when every reason was opened; `:grey_question: unverified` (assumption named) when any reason could not be opened. The register stays `heads-up` either way.
+- This note does not count against the finding cap or the two extra one-line heads-ups, and it does not withhold the ready signal.
 
 ## Inline comments
 
@@ -676,8 +707,9 @@ Wdyt?
 - [ ] [Ownership](#ownership-check-before-drafting-anything) established before writing: moved/copied code diffed against its origin, sibling MRs looked for, settled decisions not reopened
 - [ ] Finding count within the [budget](#budget) for the **substantive** change size (moves measured as divergence from origin, not raw lines); ≤2 extra one-liners; ≤2 threads per file; if more looked necessary, the user was asked **before** posting
 - [ ] Repeated occurrences of one issue marked at **every** site as a [cluster](#one-issue-several-sites) — primary carries the reasoning and the full `path:line` list, siblings are one-liners `Same as … (n/m)`, counted once against the budget
-- [ ] No hedged wording ("worth coordinating", "just flagging") — rewritten as a plain question or moved to the chat summary
+- [ ] No hedged wording ("worth coordinating", "just flagging") — rewritten as a plain question or moved to the cut-list overview and the chat summary
 - [ ] Chat summary names what was drafted, what was downgraded, and what was dropped, with reasons
+- [ ] Every drop is also one bullet in one unpublished [cut-list overview](#cut-list-overview) (GitLab general draft, GitHub pending-review body); chat alone does not count; omit only when this pass dropped nothing; do not recreate it on apply-feedback if the user deleted it
 - [ ] Withdrawn published comments struck line by line with the signature left plain, then resolved — never deleted
 - [ ] Every inline draft is on an added/removed/modified diff line (unchanged-code findings re-anchored or overview); no invisible unchanged-line pins
 - [ ] English (unless user requested another language)
@@ -688,7 +720,7 @@ Wdyt?
 - [ ] Doc citations use visible deep links to the exact section/paragraph when available (title + full URL; no title-only links)
 - [ ] No bare GitLab `!N` / `#N` in note bodies (autolinks to the **current** project); cross-project refs use prose `MR N` / `issue N` plus a full visible URL (prefer `/diffs` when citing the change) — see [GitLab autolink traps](#gitlab-autolink-traps-n-n)
 - [ ] No praise/blame overview; no draft meta; no MR-description or missing-ticket nags; no source/base conflict or rebase/behind-target comments
-- [ ] Overview does not duplicate inline topics; no overview title; no rebase asks
+- [ ] Overview does not duplicate inline topics; cut-list overview is the dropped list only, with no heading and no TLDR; no rebase asks
 - [ ] Nits use `Nit: `; no other priority labels; bold used sparingly
 - [ ] Drafts over ~100 words / four paragraphs open with a one-sentence `**TLDR:**` then a blank-line-wrapped `---`; shorter drafts and `Nit:` drafts have none; apply-feedback keeps each TLDR in step with its body
 - [ ] Inclusive `we` voice; varied phrasing
